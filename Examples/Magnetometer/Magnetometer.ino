@@ -27,7 +27,7 @@ void setup() //This code is executed once
   Wire.begin();                    //Initialize I2C communication to the let the library communicate with the sensor.
   //Sensor Initialization
   mySensor.initSensor();          //The I2C Address can be changed here inside this function in the library
-  mySensor.setOperationMode(OPERATION_MODE_M4G);   // Magnetomoter only
+  mySensor.setOperationMode(OPERATION_MODE_M4G);   // Magnetomoter and accelerometer fusion
   // mySensor.setUpdateMode(MANUAL);
 
 }
