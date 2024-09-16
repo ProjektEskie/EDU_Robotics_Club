@@ -50,6 +50,19 @@ uint32_t IMU_Loop()
 }
 
 
+// Determine if the target angle is to the left or right side of the current angle
+// Returns: True if target angle is to the right of the current angle
+bool helper_shortest_circle_direction(float current_angle, float target_angle)
+{
+  bool is_right_side = false;
+
+  float angle_diff  = target_angle - current_angle;
+
+  
+
+  return is_right_side;
+}
+
 void loop() //This code is looped forever
 {
   static uint32_t current_time;
