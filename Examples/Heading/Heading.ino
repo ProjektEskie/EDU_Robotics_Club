@@ -50,17 +50,17 @@ uint32_t IMU_Loop()
 }
 
 
-// Determine if the target angle is to the left or right side of the current angle
-// Returns: True if target angle is to the right of the current angle
-bool helper_shortest_circle_direction(float current_angle, float target_angle)
+// Calcualte the angle between two points on the compass
+// Returns: difference in angles in degrees, positve is in the clockwise direction
+// Rounded to 2 decimal places
+float helper_angle_diff(float current_angle, float target_angle)
 {
-  bool is_right_side = false;
+  int angle_diff = 0;
 
-  float angle_diff  = target_angle - current_angle;
+  angle_diff = int((current_angle - target_angle) * 100);
+  angle_diff = (angle_diff + 18000 + 36000) % 36000 - 18000;
 
-  
-
-  return is_right_side;
+  return float(angle_diff/100.0);
 }
 
 void loop() //This code is looped forever
@@ -84,9 +84,14 @@ void loop() //This code is looped forever
 
     if (TELEMETRY_ENABLE)
     {
-      sprintf(_str_buffer, "t:%8i, s_read:%8i, heading:%6.3f, roll:%6.3f, pitch:%6.3f",
+      float angle_diff = helper_angle_diff(euler_heading, 15);
+      sprintf(_str_buffer, "t:%8i, s_read:%8i, heading:%6.3f, angle_diff:%6.3f",
             current_time, last_euler_update_time,
-            euler_heading, euler_roll, euler_pitch);
+            euler_heading, angle_diff);
+
+      // sprintf(_str_buffer, "t:%8i, s_read:%8i, heading:%6.3f, roll:%6.3f, pitch:%6.3f",
+      //       current_time, last_euler_update_time,
+      //       euler_heading, euler_roll, euler_pitch);
       Serial.println(_str_buffer);
     }
 
