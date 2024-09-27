@@ -12,7 +12,7 @@
 NineAxesMotion mySensor;           //Object that for the sensor
 unsigned long sensor_update_interval_ms = 50;
 
-float euler_heading, euler_roll, euler_pitch;
+float euler_he  ading, euler_roll, euler_pitch;
 
 char _str_buffer[128];
 
@@ -136,7 +136,7 @@ void CAR_commit_speed()
 void IMU_Init()
 {
   mySensor.initSensor();          //The I2C Address can be changed here inside this function in the library
-  mySensor.setOperationMode(OPERATION_MODE_NDOF);   // 9 Degrees of freedom fusion mode
+  mySensor.setOperationMode(OPERATION_MODE_IMUPLUS);   // IMU Mode (no magnetometer)
   euler_heading = 0;
   euler_roll = 0;
   euler_pitch = 0;
