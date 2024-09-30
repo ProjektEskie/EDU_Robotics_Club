@@ -31,3 +31,6 @@
 *.out
 *.app
 Examples/Wifi_Cmd_Interface/arduino_secrets.h
+
+# Python virtual environement
+.venv
