@@ -3,7 +3,7 @@
 #include <Wire.h>
 
 #define TELEMETRY_ENABLE 1
-#define TELEMETRY_STREAM_INTERVAL 100
+#define TELEMETRY_STREAM_INTERVAL 200
 
 #define IS_EGLOO_PLATFORM 1
 
@@ -43,6 +43,8 @@ void setup() //This code is executed once
   //Peripheral Initialization
   Serial.begin(115200);   
   Wire.begin();                    //Initialize I2C communication to the let the library communicate with the sensor.
+  Wire.setClock(400000);
+  delay(1);
 
   //Sensor Initialization
   IMU_Init();
@@ -136,7 +138,9 @@ void CAR_commit_speed()
 void IMU_Init()
 {
   mySensor.initSensor();          //The I2C Address can be changed here inside this function in the library
+
   mySensor.setOperationMode(OPERATION_MODE_IMUPLUS);   // IMU Mode (no magnetometer)
+  mySensor.setUpdateMode(MANUAL);	
   euler_heading = 0;
   euler_roll = 0;
   euler_pitch = 0;
@@ -149,6 +153,9 @@ uint32_t IMU_Loop()
   if ((millis() - _last_update_time) > sensor_update_interval_ms)
   {
     _last_update_time = millis();
+
+    mySensor.updateEuler();        //Update the Euler data into the structure of the object
+    mySensor.updateCalibStatus();  //Update the Calibration Status
 
     euler_heading = mySensor.readEulerHeading();
     euler_roll = mySensor.readEulerRoll();
@@ -226,9 +233,9 @@ void loop() //This code is looped forever
     if (TELEMETRY_ENABLE)
     {
 
-      // sprintf(_str_buffer, "t:%8i, s_read:%8i, heading:%6.3f, roll:%6.3f, pitch:%6.3f",
+      // sprintf(_str_buffer, "t:%8i, s_read:%8i, heading:%6.3f, roll:%6.3f, pitch:%6.3f, enable:%2i",
       //       current_time, last_euler_update_time,
-      //       euler_heading, euler_roll, euler_pitch);
+      //       euler_heading, euler_roll, euler_pitch, digitalRead(7));
 
       sprintf(_str_buffer, "target:%6.3f, current_heading:%6.3f, slew_rate:%6.3f, left_speed:%4i, right_speed:%4i",
             target_bearing, euler_heading, slew_rate,
