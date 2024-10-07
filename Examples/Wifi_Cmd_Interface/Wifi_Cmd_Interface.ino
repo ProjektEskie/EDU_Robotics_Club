@@ -3,46 +3,27 @@
 #include "arduino_secrets.h" 
 #include <CmdParser.hpp>
 #include <ArduinoJson.h>
-#include "Arduino_NineAxesMotion.h"  
+#include "ArduinoGraphics.h"
+#include "Arduino_NineAxesMotion.h"
+#include "Arduino_LED_Matrix.h"
+#include <cppQueue.h>  
+#include "CAR_definitions.h"
+#include "definitions.h"
+
 
 #define SERVER_PORT_NUMBER 8765
 #define CMD_INPUT_BUFFER_LEN 256
 #define CMD_OUTPUT_BUFFER_LEN 256
 #define JSON_BUFFER_LEN 1024
 
+#define OUTPUT_MESSAGE_QUEUE_CAPACITY 10
+
 #define ARDUINOJSON_SLOT_ID_SIZE 1
 #define ARDUINOJSON_STRING_LENGTH_SIZE 1
 #define ARDUINOJSON_USE_DOUBLE 0
 #define ARDUINOJSON_USE_LONG_LONG 0
 
-typedef struct _imu_data
-{
-  NineAxesMotion mySensor; 
-  uint32_t last_update_time;
-  uint32_t update_interval;
-  uint16_t n_updates_counter;
-  int system_calibration_status;
-  float euler_heading;
-  float euler_pitch;
-  float euler_roll;
-} imu_data;
 
-typedef struct _car_data
-{
-  int left_speed;
-  int right_speed;
-} car_data;
-
-typedef struct _operation_data
-{
-  int status;
-  uint32_t time_now;
-  uint32_t time_since_last_telemetry;
-
-  imu_data imu;
-  car_data car;
-
-} operation_data;
 
 operation_data op_data;
 
@@ -60,8 +41,13 @@ char _input_buffer[CMD_INPUT_BUFFER_LEN];
 int _input_buffer_cur_idx = 0;
 char _output_buffer[CMD_OUTPUT_BUFFER_LEN];
 char _json_buffer[JSON_BUFFER_LEN];
+char _queue_buffer[OUTPUT_MESSAGE_QUEUE_CAPACITY][CMD_OUTPUT_BUFFER_LEN];
+
+cppQueue _output_queue(CMD_OUTPUT_BUFFER_LEN, OUTPUT_MESSAGE_QUEUE_CAPACITY, FIFO, false, _queue_buffer, sizeof(_queue_buffer));
 
 CmdParser cmdParser;
+
+ArduinoLEDMatrix matrix;
 
 void setup() {
   //Initialize serial and wait for port to open:
@@ -77,6 +63,9 @@ void setup() {
 
   // Start the IMU
   IMU_Init();
+
+  // Start the LED matrix
+  matrix.begin();
 
   // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE) {
@@ -105,9 +94,27 @@ void setup() {
     }
   }
 
+  // Setup the car
+  CAR_init();
+
 
   // you're connected now, so print out the status:
   printWifiStatus();
+
+  // display the last 3 digits of the IP address
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    matrix.beginDraw();
+    matrix.stroke(0xFFFFFFFF);
+    matrix.textFont(Font_5x7);
+    matrix.beginText(-50, 2, 0xFFFFFF);
+    matrix.println(WiFi.localIP());
+    matrix.endText();
+
+    matrix.endDraw();
+  }
+
 
   // start the server
   server.begin();
@@ -124,8 +131,20 @@ void setup() {
 void loop() {
 
   op_data.time_now = millis();
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    static bool matrix_frame_loaded = false;
+    if (!matrix_frame_loaded)
+    {
+      matrix.loadFrame(LEDMATRIX_DANGER);
+      matrix_frame_loaded = true;
+    }
+  }
+
   IMU_update();
 
+  CAR_update();
 
   networking_tasks();
 
@@ -206,17 +225,55 @@ void cmd_parse()
     }
     else if (strcmp("query", cmdParser.getCommand()) == 0)
     {
-      helper_clear_output_buffer();
+      if (!_output_queue.isEmpty())
+      {
+        helper_clear_output_buffer();
+        _output_queue.pop(_output_buffer);
+      }
+    }
+    else if (strcmp("car_m_move", cmdParser.getCommand()) == 0)
+    {
+      if (cmdParser.getParamCount() != 3)
+      {
+        helper_clear_output_buffer();
+        sprintf(_output_buffer, "Error, '%s' command accepts exactly 3 arguements",
+                cmdParser.getCommand());
+        helper_queue_messages("Info: car_m_move (car, manual move) example usage:");
+        helper_queue_messages("Info: car_m_move [left_speed] [right_speed] [duration_ms]");
+        helper_queue_messages("Info: car_m_move 200 200 1500");
+        helper_queue_messages("Info: car_m_move left_speed and right_speed should be between -255 to 255");
+      }
+      else
+      {
+        int left_speed = atoi(cmdParser.getCmdParam(1));
+        int right_speed = atoi(cmdParser.getCmdParam(2));
+        uint32_t duration = atol(cmdParser.getCmdParam(3));
+        callback_car_m_move(left_speed,
+                            right_speed,
+                            duration);
+        helper_clear_output_buffer();
+        sprintf(_output_buffer, "Success, '%s'. Moving.",
+                cmdParser.getCommand());
+      }
+    }
+    else if (strcmp("help", cmdParser.getCommand()) == 0)
+    {
+      callback_func_help();
     }
     else
     {
       // Command not found
       helper_clear_output_buffer();
-      sprintf(_output_buffer, "Error, command not found: %s", cmdParser.getCommand());
+      sprintf(_output_buffer, "Error, command not found: '%s'.Type 'help' for a list of known commands.",
+              cmdParser.getCommand());
       Serial.println(_output_buffer);
+
     }
 
+
     telemetry_generate();
+    // output buffer content has been copied to telemetry, safe to clear.
+    helper_clear_output_buffer();
 
 }
 
@@ -225,6 +282,25 @@ void callback_funct_hello()
   helper_clear_output_buffer();
   sprintf(_output_buffer, "Hello no. %s", cmdParser.getCmdParam(1));
   // Serial.println(_output_buffer);
+}
+
+void callback_func_help()
+{
+  helper_clear_output_buffer();
+  sprintf(_output_buffer, "Help messages to follow.");
+  helper_queue_messages("Valid commands:");
+  helper_queue_messages("query, returns the telemetry, triggers the sending of the next output message in queue, if any.");
+  helper_queue_messages("help, displays the help message.");
+}
+
+void callback_car_m_move(int left_speed, int right_speed, uint32_t duration)
+{
+
+  op_data.car.mode = CAR_MODE_MANUAL;
+  op_data.car.manual_mode_left_speed = left_speed;
+  op_data.car.mnaual_mode_right_speed = right_speed;
+  op_data.car.manual_move_duration = duration;
+  op_data.car._manual_move_start_time = op_data.time_now;
 }
 
 void IMU_Init()
@@ -263,6 +339,110 @@ void IMU_update()
 void IMU_reset_n_updates_counter()
 {
   op_data.imu.n_updates_counter = 0;
+}
+
+void CAR_init()
+{
+  pinMode(PIN_BATTERY_SENSE, INPUT);
+  pinMode(left_direction_pin, OUTPUT);
+  pinMode(right_direction_pin, OUTPUT);
+  pinMode(left_speed_pin, OUTPUT);
+  pinMode(right_speed_pin, OUTPUT);
+
+  #if IS_EGLOO_PLATFORM
+  pinMode(left_direction_pin_in2, OUTPUT);
+  pinMode(right_direction_pin_in4, OUTPUT);
+  #endif
+
+  op_data.car.mode = CAR_MODE_IDLE;
+
+}
+
+void CAR_update()
+{
+  if (op_data.car.mode == CAR_MODE_IDLE)
+  {
+      op_data.car.left_speed = 0;
+      op_data.car.right_speed = 0;
+  }
+  else if (op_data.car.mode == CAR_MODE_MANUAL)
+  {
+    op_data.car.left_speed = op_data.car.manual_mode_left_speed;
+    op_data.car.right_speed = op_data.car.mnaual_mode_right_speed;
+    if ((op_data.time_now - op_data.car._manual_move_start_time) > op_data.car.manual_move_duration)
+    {
+      op_data.car.mode = CAR_MODE_IDLE;
+      op_data.car.left_speed = 0;
+      op_data.car.right_speed = 0;
+      helper_queue_messages("Info: manual move complete");
+    }
+  }
+  else
+  {
+  }
+
+  CAR_commit_speed();
+}
+
+void CAR_stop()
+{
+  op_data.car.left_speed = 0;
+  op_data.car.right_speed = 0;
+  CAR_commit_speed();
+}
+
+void CAR_commit_speed()
+{
+  int CAR_left_speed = op_data.car.left_speed;
+  int CAR_right_speed = op_data.car.right_speed;
+  int abs_left_speed;
+  int abs_right_speed;
+  abs_left_speed = abs(CAR_left_speed);
+  abs_right_speed = abs(CAR_right_speed);
+
+  if (CAR_left_speed >= 0)
+  {
+    
+    #if IS_EGLOO_PLATFORM
+      digitalWrite(left_direction_pin, HIGH);
+      digitalWrite(left_direction_pin_in2, LOW);
+    #else
+      digitalWrite(left_direction_pin, HIGH);
+    #endif
+  }
+  else
+  {
+    
+    #if IS_EGLOO_PLATFORM
+      digitalWrite(left_direction_pin, LOW);
+      digitalWrite(left_direction_pin_in2, HIGH);
+    #else
+      digitalWrite(left_direction_pin, LOW);
+    #endif
+  }
+
+  if (CAR_right_speed >= 0)
+  {
+    
+    #if IS_EGLOO_PLATFORM
+      digitalWrite(right_direction_pin, LOW);
+      digitalWrite(right_direction_pin_in4, HIGH);
+    #else
+      digitalWrite(right_direction_pin, LOW);
+    #endif
+  }
+  else
+  {
+    
+    #if IS_EGLOO_PLATFORM
+      digitalWrite(right_direction_pin, HIGH);
+      digitalWrite(right_direction_pin_in4, LOW);
+    #else
+      digitalWrite(right_direction_pin, HIGH);
+    #endif
+  }
+  analogWrite(left_speed_pin, abs_left_speed);
+  analogWrite(right_speed_pin, abs_right_speed);
 }
 
 void telemetry_generate()
@@ -312,6 +492,18 @@ void helper_clear_input_buffer()
 void helper_clear_output_buffer()
 {
   memset(_output_buffer, 0, CMD_OUTPUT_BUFFER_LEN);
+}
+
+void helper_queue_messages(const char* message)
+{
+  if (sizeof(message) < CMD_OUTPUT_BUFFER_LEN)
+  {
+    _output_queue.push(message);
+  }
+  else
+  {
+    Serial.println("Error, message too long for output buffer.");
+  }
 }
 
 void printWifiStatus() {
