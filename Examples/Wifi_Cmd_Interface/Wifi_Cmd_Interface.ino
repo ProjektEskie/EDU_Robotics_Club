@@ -1,6 +1,5 @@
 
 #include "WiFiS3.h"
-#include "arduino_secrets.h" 
 #include <CmdParser.hpp>
 #include <ArduinoJson.h>
 #include "ArduinoGraphics.h"
@@ -9,6 +8,9 @@
 #include <cppQueue.h>  
 #include "CAR_definitions.h"
 #include "definitions.h"
+
+#define SECRET_SSID "Robotics_Club"
+#define SECRET_PASS "beep boop"
 
 
 #define SERVER_PORT_NUMBER 8765
