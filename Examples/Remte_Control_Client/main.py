@@ -10,7 +10,8 @@ import math
 iq = queue.SimpleQueue()
 oq = queue.SimpleQueue()
 
-DEFAULT_IP = '192.168.1.16'
+DEFAULT_IP = '192.168.1.78'
+DEFAULT_MAUAL_SPEED='180'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -19,6 +20,7 @@ glob_model['is_connected_chip'] = None
 glob_model['is_disconnected_chip'] = None
 glob_model['joystick'] = [0,0,0]
 glob_model['joystick_request_speed'] = [0,0]
+glob_model['joystick_car_speed'] = DEFAULT_MAUAL_SPEED
 glob_init_semaphore = threading.Semaphore()
 glob_UI_disconnected = 0
 
@@ -109,6 +111,9 @@ def backend_ip_validation(value):
 def backend_setip(e):
     glob_model['IP'] = e.value
     
+def backend_joystick_max_speed(e):
+    glob_model['joystick_request_speed'] = e.value
+    
 def backend_joystick_compute(e):
     glob_model['joystick'] = [e.x, e.y, 1]
 
@@ -120,27 +125,23 @@ def backend_joystick_end():
     backend_enqueue_message(cmd_str + '\n')
     glob_model['joystick']=[0,0,0]
     
+def backend_move_quick_reverse(e):
+    cmd_str = 'car_m_move {} {} {}'.format(-200, -200, 750)
+    backend_enqueue_message(cmd_str + '\n')
+    
 def backend_joystick_move_cmd():
     left_speed = 0
     right_speed = 0
     duration = 1500
     magnitude = math.sqrt(glob_model['joystick'][0]**2 + glob_model['joystick'][1]**2)
-    # print(glob_model['joystick'], magnitude)
-    if (glob_model['joystick'][1] > 0):
-        if (glob_model['joystick'][0] > 0):
-            left_speed = int(255 * magnitude)
-            right_speed = int(255 * magnitude * glob_model['joystick'][1])
-        else:
-            left_speed = int(255 * magnitude * glob_model['joystick'][1])
-            right_speed = int(255 * magnitude)
+    max_speed = float(glob_model['joystick_car_speed'])
+    if (glob_model['joystick'][0] > 0):
+        left_speed = int(max_speed * magnitude)
+        right_speed = int(max_speed * magnitude * glob_model['joystick'][1])
     else:
-        if (glob_model['joystick'][0] > 0):
-            left_speed = int(-255 * magnitude)
-            right_speed = int(255 * magnitude * glob_model['joystick'][1])
-        else:
-            left_speed = int(255 * magnitude * glob_model['joystick'][1])
-            right_speed = int(-255 * magnitude)
-            
+        left_speed = int(max_speed * magnitude * glob_model['joystick'][1])
+        right_speed = int(max_speed * magnitude)
+      
     cmd_str = 'car_m_move {} {} {}'.format(left_speed, right_speed, duration)
     return cmd_str
     
@@ -237,11 +238,21 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
         with ui.card_section():
             ui.label('Manual control joystock')
         joystick = ui.joystick(color='blue', size=150,
-                               on_move=backend_joystick_compute,
-                               on_end=backend_joystick_end)
-        joystick.classes('w-11/12 h-full bg-slate-300')
+                            on_move=backend_joystick_compute,
+                            on_end=backend_joystick_end)
+        joystick.classes('w-11/12 h-11/12 bg-slate-300')
+            
+            
+            
         with ui.card_section():
-            joystick_label = ui.label('')
+            with ui.grid(columns='1fr 2fr').classes('w-full gap-0'):
+                joystick_max_speed_input = ui.input(label='Enter max speed here',
+                                                    value=DEFAULT_MAUAL_SPEED,
+                                                    on_change=backend_joystick_max_speed)
+                
+                joystick_label = ui.label('')
+                
+                ui.button('Reverse!', on_click=backend_move_quick_reverse)
             
 
         
@@ -251,7 +262,7 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
     
     with ui.card() as placeholder_card:
         placeholder_card.tight()
-        placeholder_card.classes('w-11/12 h-200')
+        placeholder_card.classes('w-11/12 h-3/12')
         with ui.card_section():
             ui.label('Placeholder')
         
