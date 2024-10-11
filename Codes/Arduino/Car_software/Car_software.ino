@@ -1,6 +1,9 @@
 
-#include "definitions.h"
-#include "CAR_definitions.h"
+#include "definitions.hpp"
+#include "helpers.hpp"
+#include "car.hpp"
+#include "IMU.hpp"
+
 #include "WiFiS3.h"
 #include <CmdParser.hpp>
 #include <ArduinoJson.h>
@@ -13,8 +16,7 @@
 #define SECRET_PASS "beep boop"
 
 #define SERVER_PORT_NUMBER 8765
-#define CMD_INPUT_BUFFER_LEN 256
-#define CMD_OUTPUT_BUFFER_LEN 256
+
 #define JSON_BUFFER_LEN 1024
 
 #define OUTPUT_MESSAGE_QUEUE_CAPACITY 10
@@ -36,12 +38,13 @@ int status = WL_IDLE_STATUS;
 
 WiFiServer server(SERVER_PORT_NUMBER);
 
+char _json_buffer[JSON_BUFFER_LEN];
+
 char _input_buffer[CMD_INPUT_BUFFER_LEN];
 int _input_buffer_cur_idx = 0;
 char _output_buffer[CMD_OUTPUT_BUFFER_LEN];
-char _json_buffer[JSON_BUFFER_LEN];
-char _queue_buffer[OUTPUT_MESSAGE_QUEUE_CAPACITY][CMD_OUTPUT_BUFFER_LEN];
 
+char _queue_buffer[OUTPUT_MESSAGE_QUEUE_CAPACITY][CMD_OUTPUT_BUFFER_LEN];
 cppQueue _output_queue(CMD_OUTPUT_BUFFER_LEN, OUTPUT_MESSAGE_QUEUE_CAPACITY, FIFO, false, _queue_buffer, sizeof(_queue_buffer));
 
 CmdParser cmdParser;
@@ -94,7 +97,7 @@ void setup() {
   }
 
   // Setup the car
-  CAR_init();
+  CAR_init(&op_data.car);
 
 
   // you're connected now, so print out the status:
@@ -113,7 +116,6 @@ void setup() {
 
     matrix.endDraw();
   }
-
 
   // start the server
   server.begin();
@@ -143,7 +145,7 @@ void loop() {
 
   IMU_update();
 
-  CAR_update();
+  CAR_update(&op_data.car, op_data.time_now);
 
   networking_tasks();
 
@@ -301,148 +303,6 @@ void callback_car_m_move(int left_speed, int right_speed, uint32_t duration)
   op_data.car._manual_move_start_time = op_data.time_now;
 }
 
-void IMU_Init()
-{
-  op_data.imu.mySensor.initSensor();          //The I2C Address can be changed here inside this function in the library
-
-  op_data.imu.update_interval = 50;
-  op_data.imu.last_update_time = 0;
-  IMU_reset_n_updates_counter();
-
-  op_data.imu.mySensor.setOperationMode(OPERATION_MODE_IMUPLUS);   // IMU Mode (no magnetometer)
-  op_data.imu.mySensor.setUpdateMode(MANUAL);	
-  op_data.imu.euler_heading = 0;
-  op_data.imu.euler_pitch = 0;
-  op_data.imu.euler_roll = 0;
-}
-
-void IMU_update()
-{
-  if ((op_data.time_now - op_data.imu.last_update_time) > op_data.imu.update_interval)
-  {
-    op_data.imu.last_update_time = op_data.time_now;
-    op_data.imu.n_updates_counter++;
-
-    op_data.imu.mySensor.updateEuler();        //Update the Euler data into the structure of the object
-    op_data.imu.mySensor.updateCalibStatus();  //Update the Calibration Status
-
-    op_data.imu.euler_heading = op_data.imu.mySensor.readEulerHeading();
-    op_data.imu.euler_roll = op_data.imu.mySensor.readEulerRoll();
-    op_data.imu.euler_pitch = op_data.imu.mySensor.readEulerPitch();
-
-    op_data.imu.system_calibration_status = op_data.imu.mySensor.readSystemCalibStatus();
-  }
-}
-
-void IMU_reset_n_updates_counter()
-{
-  op_data.imu.n_updates_counter = 0;
-}
-
-void CAR_init()
-{
-  pinMode(PIN_BATTERY_SENSE, INPUT);
-  pinMode(left_direction_pin, OUTPUT);
-  pinMode(right_direction_pin, OUTPUT);
-  pinMode(left_speed_pin, OUTPUT);
-  pinMode(right_speed_pin, OUTPUT);
-
-  #if IS_EGLOO_PLATFORM
-  pinMode(left_direction_pin_in2, OUTPUT);
-  pinMode(right_direction_pin_in4, OUTPUT);
-  #endif
-
-  op_data.car.mode = CAR_MODE_IDLE;
-
-}
-
-void CAR_update()
-{
-  if (op_data.car.mode == CAR_MODE_IDLE)
-  {
-      op_data.car.left_speed = 0;
-      op_data.car.right_speed = 0;
-  }
-  else if (op_data.car.mode == CAR_MODE_MANUAL)
-  {
-    op_data.car.left_speed = op_data.car.manual_mode_left_speed;
-    op_data.car.right_speed = op_data.car.mnaual_mode_right_speed;
-    if ((op_data.time_now - op_data.car._manual_move_start_time) > op_data.car.manual_move_duration)
-    {
-      op_data.car.mode = CAR_MODE_IDLE;
-      op_data.car.left_speed = 0;
-      op_data.car.right_speed = 0;
-      helper_queue_messages("Info: manual move complete");
-    }
-  }
-  else
-  {
-  }
-
-  CAR_commit_speed();
-}
-
-void CAR_stop()
-{
-  op_data.car.left_speed = 0;
-  op_data.car.right_speed = 0;
-  CAR_commit_speed();
-}
-
-void CAR_commit_speed()
-{
-  int CAR_left_speed = op_data.car.left_speed;
-  int CAR_right_speed = op_data.car.right_speed;
-  int abs_left_speed;
-  int abs_right_speed;
-  abs_left_speed = abs(CAR_left_speed);
-  abs_right_speed = abs(CAR_right_speed);
-
-  if (CAR_left_speed >= 0)
-  {
-    
-    #if IS_EGLOO_PLATFORM
-      digitalWrite(left_direction_pin, HIGH);
-      digitalWrite(left_direction_pin_in2, LOW);
-    #else
-      digitalWrite(left_direction_pin, HIGH);
-    #endif
-  }
-  else
-  {
-    
-    #if IS_EGLOO_PLATFORM
-      digitalWrite(left_direction_pin, LOW);
-      digitalWrite(left_direction_pin_in2, HIGH);
-    #else
-      digitalWrite(left_direction_pin, LOW);
-    #endif
-  }
-
-  if (CAR_right_speed >= 0)
-  {
-    
-    #if IS_EGLOO_PLATFORM
-      digitalWrite(right_direction_pin, LOW);
-      digitalWrite(right_direction_pin_in4, HIGH);
-    #else
-      digitalWrite(right_direction_pin, LOW);
-    #endif
-  }
-  else
-  {
-    
-    #if IS_EGLOO_PLATFORM
-      digitalWrite(right_direction_pin, HIGH);
-      digitalWrite(right_direction_pin_in4, LOW);
-    #else
-      digitalWrite(right_direction_pin, HIGH);
-    #endif
-  }
-  analogWrite(left_speed_pin, abs_left_speed);
-  analogWrite(right_speed_pin, abs_right_speed);
-}
-
 void telemetry_generate()
 {
   static uint32_t _last_telemetry_time = 0;
@@ -481,28 +341,6 @@ void telemetry_generate()
 
 }
 
-void helper_clear_input_buffer()
-{
-  memset(_input_buffer, 0, CMD_INPUT_BUFFER_LEN);
-  _input_buffer_cur_idx = 0;
-}
-
-void helper_clear_output_buffer()
-{
-  memset(_output_buffer, 0, CMD_OUTPUT_BUFFER_LEN);
-}
-
-void helper_queue_messages(const char* message)
-{
-  if (sizeof(message) < CMD_OUTPUT_BUFFER_LEN)
-  {
-    _output_queue.push(message);
-  }
-  else
-  {
-    Serial.println("Error, message too long for output buffer.");
-  }
-}
 
 void printWifiStatus() {
   // print the SSID of the network you're attached to:

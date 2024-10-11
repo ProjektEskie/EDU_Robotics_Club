@@ -1,3 +1,5 @@
+#ifndef CAR_DEFINITIONS_H
+#define CAR_DEFINITIONS_H
 
 #define IS_EGLOO_PLATFORM 1
 
@@ -16,4 +18,6 @@
   const int right_direction_pin = 3;
   const int left_speed_pin = 6;
   const int right_speed_pin = 5;
+#endif
+
 #endif

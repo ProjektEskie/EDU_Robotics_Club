@@ -184,8 +184,6 @@ app.native.start_args['debug'] = False
 app.native.settings['ALLOW_DOWNLOADS'] = True
 app.on_disconnect(backend_disconnect)
 
-ui.label('Robot Car Control')
-
 ui.timer(0, callback=backend_init, once=True)
 ui.timer(0.1, callback=backend_update)
 ui.timer(0.5, callback=backend_slow_update)
