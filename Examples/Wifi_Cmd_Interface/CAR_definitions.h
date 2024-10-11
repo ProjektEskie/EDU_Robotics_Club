@@ -5,7 +5,7 @@
 
 
 #if IS_EGLOO_PLATFORM
-  const int left_direction_pin = 12;
+  const int left_direction_pin = A3;
   const int left_direction_pin_in2 = 8;
   const int right_direction_pin = 9;
   const int right_direction_pin_in4 = 11;

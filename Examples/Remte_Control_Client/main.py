@@ -3,7 +3,7 @@ import time
 import socket
 import queue
 import json
-from nicegui import app, ui, Client
+from nicegui import app, ui, native
 import ipaddress
 import math
 
@@ -184,6 +184,7 @@ app.native.start_args['debug'] = False
 app.native.settings['ALLOW_DOWNLOADS'] = True
 app.on_disconnect(backend_disconnect)
 
+ui.label('Robot Car Control')
 
 ui.timer(0, callback=backend_init, once=True)
 ui.timer(0.1, callback=backend_update)
@@ -275,4 +276,10 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
         json_view.classes(('w-fit'))
 
 glob_model['is_ui_init'] = True
-ui.run(native=True, window_size=(1200, 1000), fullscreen=False, reload=False)
+
+
+
+ui.run(native=True, window_size=(1200, 1000), fullscreen=False, reload=False, port=native.find_open_port())
+
+# To build as exe, run the following in command line (need pyinstaller)
+#  nicegui-pack --onefile --windowed --name "RCC" main.py
