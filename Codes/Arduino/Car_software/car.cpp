@@ -1,41 +1,45 @@
 #include "car.hpp"
+#include "definitions.hpp"
+#include "helpers.hpp"
 
-void CAR_stop(car_data * cd);
-void CAR_commit_speed(car_data * cd);
+void CAR_stop();
+void CAR_commit_speed();
 
-void CAR_init(car_data * cd)
+extern operation_data op_data;
+
+void CAR_init()
 {
   pinMode(PIN_BATTERY_SENSE, INPUT);
-  pinMode(left_direction_pin, OUTPUT);
-  pinMode(right_direction_pin, OUTPUT);
-  pinMode(left_speed_pin, OUTPUT);
-  pinMode(right_speed_pin, OUTPUT);
+  pinMode(LEFT_DIRECTION_PIN, OUTPUT);
+  pinMode(RIGHT_DIRECTION_PIN, OUTPUT);
+  pinMode(LEFT_SPEED_PIN, OUTPUT);
+  pinMode(RIGHT_SPEED_PIN, OUTPUT);
 
   #if IS_EGLOO_PLATFORM
-  pinMode(left_direction_pin_in2, OUTPUT);
-  pinMode(right_direction_pin_in4, OUTPUT);
+  pinMode(LEFT_DIRECTION_PIN_IN2, OUTPUT);
+  pinMode(RIGHT_DIRECTION_PIN_IN4, OUTPUT);
   #endif
 
-  cd->mode = CAR_MODE_IDLE;
+  op_data.car.mode = CAR_MODE_IDLE;
 }
 
-void CAR_update(car_data * cd, uint32_t time_now)
+void CAR_update()
 {
 
-  if (cd->mode == CAR_MODE_IDLE)
+  if (op_data.car.mode == CAR_MODE_IDLE)
   {
-      cd->left_speed = 0;
-      cd->right_speed = 0;
+      op_data.car.left_speed = 0;
+      op_data.car.right_speed = 0;
   }
-  else if (cd->mode == CAR_MODE_MANUAL)
+  else if (op_data.car.mode == CAR_MODE_MANUAL)
   {
-    cd->left_speed = cd->manual_mode_left_speed;
-    cd->right_speed = cd->mnaual_mode_right_speed;
-    if ((time_now - cd->_manual_move_start_time) > cd->manual_move_duration)
+    op_data.car.left_speed = op_data.car.mm_data.mm_left_speed;
+    op_data.car.right_speed = op_data.car.mm_data.mm_right_speed;
+    if ((op_data.time_now - op_data.car.mm_data._mm_start_time) > op_data.car.mm_data.mm_duration)
     {
-      cd->mode = CAR_MODE_IDLE;
-      cd->left_speed = 0;
-      cd->right_speed = 0;
+      op_data.car.mode = CAR_MODE_IDLE;
+      op_data.car.left_speed = 0;
+      op_data.car.right_speed = 0;
       helper_queue_messages("Info: manual move complete");
     }
   }
@@ -43,20 +47,20 @@ void CAR_update(car_data * cd, uint32_t time_now)
   {
   }
 
-  CAR_commit_speed(cd);
+  CAR_commit_speed();
 }
 
-void CAR_stop(car_data * cd)
+void CAR_stop()
 {
-  cd->left_speed = 0;
-  cd->right_speed = 0;
-  CAR_commit_speed(cd);
+  op_data.car.left_speed = 0;
+  op_data.car.right_speed = 0;
+  CAR_commit_speed();
 }
 
-void CAR_commit_speed(car_data * cd)
+void CAR_commit_speed()
 {
-  int CAR_left_speed = cd->left_speed;
-  int CAR_right_speed = cd->right_speed;
+  int CAR_left_speed = op_data.car.left_speed;
+  int CAR_right_speed = op_data.car.right_speed;
   int abs_left_speed;
   int abs_right_speed;
   abs_left_speed = abs(CAR_left_speed);
@@ -65,20 +69,20 @@ void CAR_commit_speed(car_data * cd)
   if (CAR_left_speed >= 0)
   {
     #if IS_EGLOO_PLATFORM
-      digitalWrite(left_direction_pin, HIGH);
-      digitalWrite(left_direction_pin_in2, LOW);
+      digitalWrite(LEFT_DIRECTION_PIN, HIGH);
+      digitalWrite(LEFT_DIRECTION_PIN_IN2, LOW);
     #else
-      digitalWrite(left_direction_pin, HIGH);
+      digitalWrite(LEFT_DIRECTION_PIN, HIGH);
     #endif
   }
   else
   {
     
     #if IS_EGLOO_PLATFORM
-      digitalWrite(left_direction_pin, LOW);
-      digitalWrite(left_direction_pin_in2, HIGH);
+      digitalWrite(LEFT_DIRECTION_PIN, LOW);
+      digitalWrite(LEFT_DIRECTION_PIN_IN2, HIGH);
     #else
-      digitalWrite(left_direction_pin, LOW);
+      digitalWrite(LEFT_DIRECTION_PIN, LOW);
     #endif
   }
 
@@ -86,22 +90,22 @@ void CAR_commit_speed(car_data * cd)
   {
     
     #if IS_EGLOO_PLATFORM
-      digitalWrite(right_direction_pin, LOW);
-      digitalWrite(right_direction_pin_in4, HIGH);
+      digitalWrite(RIGHT_DIRECTION_PIN, LOW);
+      digitalWrite(RIGHT_DIRECTION_PIN_IN4, HIGH);
     #else
-      digitalWrite(right_direction_pin, LOW);
+      digitalWrite(RIGHT_DIRECTION_PIN, LOW);
     #endif
   }
   else
   {
     
     #if IS_EGLOO_PLATFORM
-      digitalWrite(right_direction_pin, HIGH);
-      digitalWrite(right_direction_pin_in4, LOW);
+      digitalWrite(RIGHT_DIRECTION_PIN, HIGH);
+      digitalWrite(RIGHT_DIRECTION_PIN_IN4, LOW);
     #else
-      digitalWrite(right_direction_pin, HIGH);
+      digitalWrite(RIGHT_DIRECTION_PIN, HIGH);
     #endif
   }
-  analogWrite(left_speed_pin, abs_left_speed);
-  analogWrite(right_speed_pin, abs_right_speed);
+  analogWrite(LEFT_SPEED_PIN, abs_left_speed);
+  analogWrite(RIGHT_SPEED_PIN, abs_right_speed);
 }

@@ -97,7 +97,7 @@ void setup() {
   }
 
   // Setup the car
-  CAR_init(&op_data.car);
+  CAR_init();
 
 
   // you're connected now, so print out the status:
@@ -145,7 +145,7 @@ void loop() {
 
   IMU_update();
 
-  CAR_update(&op_data.car, op_data.time_now);
+  CAR_update();
 
   networking_tasks();
 
@@ -295,12 +295,11 @@ void callback_func_help()
 
 void callback_car_m_move(int left_speed, int right_speed, uint32_t duration)
 {
-
   op_data.car.mode = CAR_MODE_MANUAL;
-  op_data.car.manual_mode_left_speed = left_speed;
-  op_data.car.mnaual_mode_right_speed = right_speed;
-  op_data.car.manual_move_duration = duration;
-  op_data.car._manual_move_start_time = op_data.time_now;
+  op_data.car.mm_data.mm_left_speed = left_speed;
+  op_data.car.mm_data.mm_right_speed = right_speed;
+  op_data.car.mm_data.mm_duration = duration;
+  op_data.car.mm_data._mm_start_time = op_data.time_now;
 }
 
 void telemetry_generate()
@@ -320,12 +319,22 @@ void telemetry_generate()
   JsonObject IMU = doc["IMU"].to<JsonObject>();
   IMU["last_updated"] = op_data.imu.last_update_time;
   IMU["n_updates"] = op_data.imu.n_updates_counter;
-  IMU["system_cal"] = op_data.imu.system_calibration_status;
+  
+  JsonObject IMU_calibration = IMU["calibration"].to<JsonObject>();
+  IMU_calibration["system_cal"] = op_data.imu.system_calibration_status;
+  IMU_calibration["gryo_cal"] = op_data.imu.gryo_calibration_status;
+  IMU_calibration["accel_cal"] = op_data.imu.accel_calibration_status;
+  IMU_calibration["mag_cal"] = op_data.imu.mag_calibration_status;
 
   JsonObject IMU_euler_angles = IMU["euler_angles"].to<JsonObject>();
   IMU_euler_angles["heading"] = op_data.imu.euler_heading;
   IMU_euler_angles["pitch"] = op_data.imu.euler_pitch;
   IMU_euler_angles["roll"] = op_data.imu.euler_roll;
+
+  JsonObject IMU_lin_accel = IMU["lin_accel"].to<JsonObject>();
+  IMU_lin_accel["lin_accel_x"] = op_data.imu.linaccel_x;
+  IMU_lin_accel["lin_accel_y"] = op_data.imu.linaccel_y;
+  IMU_lin_accel["lin_accel_z"] = op_data.imu.linaccel_z;
 
   JsonObject CAR_speeds = doc["CAR"]["speeds"].to<JsonObject>();
   CAR_speeds["left"] = op_data.car.left_speed;
