@@ -7,6 +7,8 @@ from nicegui import app, ui, native
 import ipaddress
 import math
 import numpy as np
+import plotly.graph_objects as go
+
 
 iq = queue.SimpleQueue()
 oq = queue.SimpleQueue()
@@ -24,7 +26,6 @@ glob_model['joystick_request_speed'] = [0,0]
 glob_model['joystick_car_speed'] = DEFAULT_MAUAL_SPEED
 glob_model['calibration_plot_data'] = queue.SimpleQueue()
 glob_model['ping_plot_data'] = queue.SimpleQueue()
-glob_model['ping_plot_drawing_data'] = [np.zeros(100), np.zeros(100)]
 glob_init_semaphore = threading.Semaphore()
 glob_UI_disconnected = 0
 
@@ -215,13 +216,16 @@ def backend_slow_update():
                 
         while not glob_model['ping_plot_data'].empty():
             datapoint = glob_model['ping_plot_data'].get()
-            glob_model['ping_plot_drawing_data'][0].roll(datapoint[0])
-            glob_model['ping_plot_drawing_data'][1].roll(datapoint[1])
+            ping_plot.options['series'][0]['data'][0] = datapoint[1]
 
             
 def backend_very_slow_update():
-    ping_plot.set_xdata(glob_model['ping_plot_drawing_data'][0])
-    ping_plot.set_ydata(glob_model['ping_plot_drawing_data'][1]) 
+    
+    # Testing only    
+    # ping_plot.options['series'][0]['data'][0] = np.random.rand() * 200
+    
+    ping_plot.update()
+
     
 app.native.start_args['debug'] = False
 app.native.settings['ALLOW_DOWNLOADS'] = True
@@ -325,22 +329,26 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
         json_view.classes(('w-fit'))
 
 ui.separator()  
-with ui.grid(columns='2fr 1fr').classes('w-full h-12 gap-0'):
-    
-    with ui.card() as cal_status_card:
-        cal_status_card.tight()
-        cal_status_card.classes('w-11/12')
+with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
+
+    with ui.card() as ping_plot_card:
+        ping_plot_card.tight()
+        ping_plot_card.classes('w-11/12')
+
+        ping_plot = ui.echart({
+            'xAxis': {'type': 'value', 'min': 0 , 'max': 200},
+            'yAxis': {'type': 'category', 'data': ['Ping'], 'inverse': True},
+            'series': [
+                {'type': 'bar', 'name': 'RoundTrip', 'data': [0.1]},
+            ],
+        })
+
+        
+    with ui.card() as placeholder_card:
+        placeholder_card.tight()
+        placeholder_card.classes('w-11/12')
         with ui.card_section():
             ui.label("Placeolder")
-
-    with ui.matplotlib(figsize=(4, 2)).figure as fig:
-        ax = fig.gca()
-        ping_plot = ax.plot(glob_model['ping_plot_drawing_data'][0],
-                glob_model['ping_plot_drawing_data'][1])
-        ax.set_title("Ping Plot")
-        ax.set_xlabel("Car Time (ms)")
-        ax.set_ylabel("Ping (ms)")
-
 
 glob_model['is_ui_init'] = True
 
