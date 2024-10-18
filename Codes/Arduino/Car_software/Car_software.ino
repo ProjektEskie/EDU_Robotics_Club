@@ -156,8 +156,9 @@ void networking_tasks()
   // listen for incoming clients
   WiFiClient client = server.available();
   static uint8_t _is_client_connected = 0;
-  if (client) {
-
+  static uint32_t _last_communication_time = op_data.time_now;
+  if (client)
+  {
     if (client.connected()) {
       if (_is_client_connected == 0)
       {
@@ -169,6 +170,7 @@ void networking_tasks()
         char c = client.read();
         _input_buffer[_input_buffer_cur_idx] = c;
         _input_buffer_cur_idx++;
+        _last_communication_time = op_data.time_now;
 
         if (c == '\n') {
           // end of input command
@@ -186,12 +188,16 @@ void networking_tasks()
         }
       }
     }
+
+    if ((op_data.time_now - _last_communication_time) > 2000)
+    {
+      client.stop();
+    }
   }
   else
   {
     if (_is_client_connected)
     {
-      // Serial.println("Client disconnected");
       helper_clear_input_buffer();
     }
     _is_client_connected = 0;
