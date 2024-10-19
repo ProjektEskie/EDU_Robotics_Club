@@ -273,7 +273,7 @@ with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-colo
                     },
         'legend': {'textStyle': {'color': 'gray'}},
         'series': [
-            {'type': 'bar', 'name': 'Calibration_Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
+            {'type': 'bar', 'name': 'IMU Calibration Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
         ],
         'grid': {'containLabel': True, 'left': 0},
         })
