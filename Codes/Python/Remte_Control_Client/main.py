@@ -16,6 +16,8 @@ oq = queue.SimpleQueue()
 DEFAULT_IP = '192.168.1.'
 DEFAULT_MAUAL_SPEED='180'
 
+TESTING_MODE = True
+
 glob_model = {}
 glob_model['is_init'] = False
 glob_model['is_ui_init'] = False
@@ -74,15 +76,6 @@ def thread_arduino_comms_loop(input_queue, output_queue):
         time.sleep(0.05)
         
     return
-
-# @ui.page('/')
-# async def index(client: Client):
-#     print('preparing')
-#     await client.connected()
-#     print('connected')
-#     await client.disconnected()
-#     print('disconnected')
-    
         
 def backend_init():
         arduino_comms_thread = threading.Thread(target=thread_arduino_comms_loop, args=[iq, oq])
@@ -212,7 +205,7 @@ def backend_slow_update():
                 
         while not glob_model['calibration_plot_data'].empty():
             datapoint = glob_model['calibration_plot_data'].get()
-            calibration_plot.push(datapoint)
+            calibration_plot.options['series'][0]['data'] = (datapoint[1])
                 
         while not glob_model['ping_plot_data'].empty():
             datapoint = glob_model['ping_plot_data'].get()
@@ -222,8 +215,13 @@ def backend_slow_update():
 def backend_very_slow_update():
     
     # Testing only    
-    # ping_plot.options['series'][0]['data'][0] = np.random.rand() * 200
+    if TESTING_MODE:
+        ping_plot.options['series'][0]['data'][0] = np.random.rand() * 200
+        calibration_test_data = np.random.rand(4)*3
+        calibration_test_data = calibration_test_data.tolist()
+        calibration_plot.options['series'][0]['data'] = calibration_test_data
     
+    calibration_plot.update()
     ping_plot.update()
 
     
@@ -239,12 +237,10 @@ ui.timer(2, callback=backend_very_slow_update)
 
 with ui.header(elevated=True).style('background-color: #3874c8').classes('items-center justify-between'):
 
-
     with ui.row().classes('w-full'):
         
         ui.markdown('#Robot Car Control')
 
-        
         ui.space()
         
         ip_textbox = ui.input(label='Enter IP address to connect',
@@ -266,20 +262,64 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
         is_connected_chip.set_visibility(False)
         
 
-with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
-    
-    with ui.card() as comm_window:
-        comm_window.tight()
-        comm_window.classes('w-11/12')
-        with ui.card_section():
-            ui.label('Communication Window')
-        comm_log = ui.log(max_lines=100)
-        comm_log.classes('w-full h-3/12')
-        comm_log.style('font-size: 75%;')
-        comm_text_input = ui.input(label='Enter commands here:')
-        comm_text_input.classes('w-full h-20')
-        comm_text_input.on('keydown.enter', backend_send_msg) 
+with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-color: #d7e3f4'):
+    ui.markdown('##Robot Status')
         
+    calibration_plot = ui.echart({
+        'xAxis': {'type': 'value', 'min': 0 , 'max': 3},
+        'yAxis': {'type': 'category',
+                    'data': ['System', 'Gyro', 'Accel', 'Mag'],
+                    'inverse': True
+                    },
+        'legend': {'textStyle': {'color': 'gray'}},
+        'series': [
+            {'type': 'bar', 'name': 'Calibration_Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
+        ],
+        'grid': {'containLabel': True, 'left': 0},
+        })
+    calibration_plot.classes('w-10/12')
+    
+    ui.separator() 
+    
+    ping_plot = ui.echart({
+        'xAxis': {'type': 'value', 'min': 0 , 'max': 200},
+        'yAxis': {'type': 'category', 'data': ['Ping'], 'inverse': True,
+                  'nameRotate': 90,},
+        'series': [
+            {'type': 'bar', 'name': 'RoundTrip', 'data': [0.1]},
+        ],
+        'grid': {'containLabel': True, 'left': 0},
+        })
+    ping_plot.classes('w-10/12')
+    
+    ui.separator() 
+
+    with ui.card() as json_card:
+        json_card.tight()
+        json_card.classes('w-11/12')
+        with ui.card_section():
+            ui.label('Raw Data')
+        json_view = ui.json_editor({'content': {'json': {}}})
+        json_view.classes(('w-fit'))
+
+
+    
+with ui.card() as comm_window:
+    comm_window.tight()
+    comm_window.classes('w-11/12')
+    with ui.card_section():
+        ui.label('Communication Window')
+    comm_log = ui.log(max_lines=100)
+    comm_log.classes('w-full h-3/12')
+    comm_log.style('font-size: 75%;')
+    comm_text_input = ui.input(label='Enter commands here:')
+    comm_text_input.classes('w-full h-20')
+    comm_text_input.on('keydown.enter', backend_send_msg) 
+    
+ui.separator()  
+
+with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
+
     with ui.card() as joystick_card:
         joystick_card.tight()
         joystick_card.classes('w-11/12 h-80')
@@ -289,9 +329,7 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
                             on_move=backend_joystick_compute,
                             on_end=backend_joystick_end)
         joystick.classes('w-11/12 h-11/12 bg-slate-300')
-            
-            
-            
+        
         with ui.card_section():
             with ui.grid(columns='1fr 2fr').classes('w-full gap-0'):
                 joystick_max_speed_input = ui.input(label='Enter max speed here',
@@ -301,54 +339,16 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
                 joystick_label = ui.label('')
                 
                 ui.button('Reverse!', on_click=backend_move_quick_reverse)
-            
-
-        
-ui.separator()  
-
-with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
-    
-    with ui.card() as cal_status_card:
-        cal_status_card.tight()
-        cal_status_card.classes('w-11/12 h-3/12')
-        with ui.card_section():
-            ui.label("IMU Calibration status")
-        with ui.card_section():
-            calibration_plot = ui.line_plot(n=4, limit=100, figsize=(8, 3), update_every=1) \
-                .with_legend(
-                    ['System', 'Gyro', 'Accel', 'Mag'],
-                    loc='lower left', ncol=2)
-
-        
-    with ui.card() as json_card:
-        json_card.tight()
-        json_card.classes('w-11/12')
-        with ui.card_section():
-            ui.label('Raw Data')
-        json_view = ui.json_editor({'content': {'json': {}}})
-        json_view.classes(('w-fit'))
-
-ui.separator()  
-with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
-
-    with ui.card() as ping_plot_card:
-        ping_plot_card.tight()
-        ping_plot_card.classes('w-11/12')
-
-        ping_plot = ui.echart({
-            'xAxis': {'type': 'value', 'min': 0 , 'max': 200},
-            'yAxis': {'type': 'category', 'data': ['Ping'], 'inverse': True},
-            'series': [
-                {'type': 'bar', 'name': 'RoundTrip', 'data': [0.1]},
-            ],
-        })
-
         
     with ui.card() as placeholder_card:
         placeholder_card.tight()
         placeholder_card.classes('w-11/12')
         with ui.card_section():
             ui.label("Placeolder")
+
+
+      
+
 
 glob_model['is_ui_init'] = True
 
