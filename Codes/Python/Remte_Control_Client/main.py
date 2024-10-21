@@ -16,7 +16,7 @@ oq = queue.SimpleQueue()
 DEFAULT_IP = '192.168.1.'
 DEFAULT_MAUAL_SPEED='180'
 
-TESTING_MODE = True
+TESTING_MODE = False
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -34,46 +34,64 @@ glob_UI_disconnected = 0
 def thread_arduino_comms_loop(input_queue, output_queue):
     IP = glob_model['IP']
     PORT = 8765
-    
-    is_connected = False
-    
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    while True:
-        global glob_UI_disconnected
-        if glob_UI_disconnected:
-            print("UI disconnect detected, ending comm thread")
-            if (is_connected):
-                s.close()
-            break
-        
-        if (not is_connected):
-            s.settimeout(2)
-            s.connect((IP, PORT))
-            is_connected = True
-        
-        if input_queue.empty():
-            input_queue.put(b'query\n')
-            
-        message = input_queue.get()
 
-        s.sendall(message)
-        try:
-            data = s.recv(1024)
-        except ConnectionResetError as e:
-            # this error is generated if the arduino stops sending, no need for action
-            is_connected = False
-            pass
-        
-        except TimeoutError as e:
-            print(e)
-            break
-        
-        json_data = json.loads(data)
-        
-        output_queue.put(json_data)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        is_connected = False
+        message_sent = False
+        n_receive_tries = 0
+        while True:
+            global glob_UI_disconnected
+            if glob_UI_disconnected:
+                print("UI disconnect detected, ending comm thread")
+                if (is_connected):
+                    s.close()
+                break
             
-        time.sleep(0.05)
+            if n_receive_tries > 3:
+                print("Too many receive failures")
+                if (is_connected):
+                    s.close()
+                break
+            
+            if (not is_connected):
+                s.settimeout(2)
+                s.connect((IP, PORT))
+                is_connected = True
+            
+            if input_queue.empty():
+                input_queue.put(b'query\n')
+                
+            message = input_queue.get()
+
+            if not message_sent:
+                s.sendall(message)
+                message_sent = True
+            else:
+                try:
+                    data = s.recv(1024)
+                except ConnectionResetError as e:
+                    # this error is generated if the arduino stops sending, no need for action
+                    s.close()
+                    is_connected = False
+                    pass
+            
+                except TimeoutError as e:
+                    print(e)
+                    break
+                
+                if len(data) > 2:
+                    json_data = json.loads(data)
+                
+                    output_queue.put(json_data)
+                    message_sent = False
+                    n_receive_tries = 0
+                else:
+                    n_receive_tries += 1
+                    
+            time.sleep(0.1)
+            
+
+        
         
     return
         
@@ -168,10 +186,10 @@ def backend_update():
             cal_plot_datapoint = [
                 int(glob_model['data']['time_ms']),
                 [
-                    int(glob_model['data']['calibration']['system_cal']),
-                    int(glob_model['data']['calibration']['gryo_cal']),
-                    int(glob_model['data']['calibration']['accel_cal']),
-                    int(glob_model['data']['calibration']['mag_cal'])
+                    int(glob_model['data']['IMU']['calibration']['system_cal']),
+                    int(glob_model['data']['IMU']['calibration']['gryo_cal']),
+                    int(glob_model['data']['IMU']['calibration']['accel_cal']),
+                    int(glob_model['data']['IMU']['calibration']['mag_cal'])
                 ]
             ]
             
@@ -265,35 +283,38 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
 with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-color: #d7e3f4'):
     ui.markdown('##Robot Status')
         
-    calibration_plot = ui.echart({
-        'xAxis': {'type': 'value', 'min': 0 , 'max': 3},
-        'yAxis': {'type': 'category',
-                    'data': ['System', 'Gyro', 'Accel', 'Mag'],
-                    'inverse': True
-                    },
-        'legend': {'textStyle': {'color': 'gray'}},
-        'series': [
-            {'type': 'bar', 'name': 'IMU Calibration Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
-        ],
-        'grid': {'containLabel': True, 'left': 0},
-        })
-    calibration_plot.classes('w-10/12')
+    ui.markdown('###Plots')
+    ui.separator()
+    with ui.scroll_area().classes('w-full h-9/12'):
+        
+        calibration_plot = ui.echart({
+            'xAxis': {'type': 'value', 'min': 0 , 'max': 3},
+            'yAxis': {'type': 'category',
+                        'data': ['System', 'Gyro', 'Accel', 'Mag'],
+                        'inverse': True
+                        },
+            'legend': {'textStyle': {'color': 'gray'}},
+            'series': [
+                {'type': 'bar', 'name': 'IMU Calibration Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
+            ],
+            'grid': {'containLabel': True, 'left': 0},
+            })
+        calibration_plot.classes('w-10/12 h-2/12')
+        
+        
+        ping_plot = ui.echart({
+            'xAxis': {'type': 'value', 'min': 0 , 'max': 400},
+            'yAxis': {'type': 'category', 'data': ['Ping'], 'inverse': True,
+                    'nameRotate': 90,},
+            'series': [
+                {'type': 'bar', 'name': 'RoundTrip', 'data': [0.1]},
+            ],
+            'grid': {'containLabel': True, 'left': 0},
+            })
+        ping_plot.classes('w-10/12 h-2/12')
     
-    ui.separator() 
-    
-    ping_plot = ui.echart({
-        'xAxis': {'type': 'value', 'min': 0 , 'max': 200},
-        'yAxis': {'type': 'category', 'data': ['Ping'], 'inverse': True,
-                  'nameRotate': 90,},
-        'series': [
-            {'type': 'bar', 'name': 'RoundTrip', 'data': [0.1]},
-        ],
-        'grid': {'containLabel': True, 'left': 0},
-        })
-    ping_plot.classes('w-10/12')
-    
-    ui.separator() 
 
+    ui.separator()
     with ui.card() as json_card:
         json_card.tight()
         json_card.classes('w-11/12')
