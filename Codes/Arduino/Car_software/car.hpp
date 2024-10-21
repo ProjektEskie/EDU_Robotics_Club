@@ -3,7 +3,7 @@
 
 #include <arduino.h>
 
-#define IS_EGLOO_PLATFORM 1
+#define IS_EGLOO_PLATFORM 0
 
 #define PIN_BATTERY_SENSE A0
 
