@@ -84,10 +84,21 @@ void loop() //This code is looped forever
 
     if (TELEMETRY_ENABLE)
     {
-      sprintf(_str_buffer, "t:%8i, s_read:%8i, heading:%6.3f, roll:%6.3f, pitch:%6.3f",
-            current_time, last_euler_update_time,
-            euler_heading, euler_roll, euler_pitch);
-      Serial.println(_str_buffer);
+      // sprintf(_str_buffer, "t:%8i, s_read:%8i, heading:%6.3f, roll:%6.3f, pitch:%6.3f",
+      //      current_time, last_euler_update_time,
+      //      euler_heading, euler_roll, euler_pitch);
+      // Serial.println(_str_buffer);
+
+      Serial.print(current_time);
+      Serial.print(",");
+      Serial.print(last_euler_update_time);
+      Serial.print(",");
+      Serial.print(euler_heading);
+      Serial.print(",");
+      Serial.print(euler_roll);
+      Serial.print(",");
+      Serial.println(euler_pitch);
+
     }
 
   }
