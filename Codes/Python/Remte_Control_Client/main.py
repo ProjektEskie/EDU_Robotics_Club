@@ -16,6 +16,8 @@ oq = queue.SimpleQueue()
 DEFAULT_IP = '192.168.1.'
 DEFAULT_MAUAL_SPEED='180'
 
+VERSION_STR = '1.0'
+
 TESTING_MODE = False
 
 glob_model = {}
@@ -258,6 +260,7 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
     with ui.row().classes('w-full'):
         
         ui.markdown('#Robot Car Control')
+        ui.label(VERSION_STR)
 
         ui.space()
         
