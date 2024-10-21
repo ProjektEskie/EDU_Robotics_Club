@@ -12,6 +12,7 @@
 #include "Arduino_LED_Matrix.h"
 #include <cppQueue.h>  
 
+#define WIFI_AP_MODE 0
 #define SECRET_SSID "Robotics_Club"
 #define SECRET_PASS "beep boop"
 
@@ -32,7 +33,6 @@ operation_data op_data;
 ///////please enter your sensitive data in the Secret tab/arduino_secrets.h
 char ssid[] = SECRET_SSID;        // your network SSID (name)
 char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
-int keyIndex = 0;                 // your network key index number (needed only for WEP)
 
 int status = WL_IDLE_STATUS;
 
@@ -76,6 +76,16 @@ void setup() {
     while (true);
   }
 
+#if WIFI_AP_MODE
+  WiFi.config(IPAddress(192,168,1,1));
+  status = WiFi.beginAP(ssid, pass);
+  if (status != WL_AP_LISTENING) {
+    Serial.println("Creating access point failed");
+    // don't continue
+    matrix.loadFrame(LEDMATRIX_DANGER);
+    while (true);
+  }
+#else
   Serial.println("Attempting WIFI connection...");
   // attempt to connect to WiFi network:
   if (status != WL_CONNECTED) {
@@ -96,13 +106,6 @@ void setup() {
     }
   }
 
-  // Setup the car
-  CAR_init();
-
-
-  // you're connected now, so print out the status:
-  printWifiStatus();
-
   // display the last 3 digits of the IP address
 
   if (WiFi.status() == WL_CONNECTED)
@@ -116,6 +119,12 @@ void setup() {
 
     matrix.endDraw();
   }
+#endif
+
+  printWifiStatus();
+
+  // Setup the car
+  CAR_init();
 
   // start the server
   server.begin();
@@ -133,15 +142,43 @@ void loop() {
 
   op_data.time_now = millis();
 
-  if (WiFi.status() != WL_CONNECTED)
+  static uint8_t _wifi_status = WiFi.status();
+  static uint8_t _prev_wifi_status = _wifi_status;
+  _wifi_status = WiFi.status();
+  static bool matrix_frame_loaded = false;
+  if (_prev_wifi_status != _wifi_status)
   {
-    static bool matrix_frame_loaded = false;
+    matrix_frame_loaded = true;
+  }
+#if WIFI_AP_MODE
+  if (_wifi_status == WL_AP_CONNECTED)
+  {
+    if (!matrix_frame_loaded)
+    {
+      matrix.loadFrame(LEDMATRIX_EMOJI_HAPPY);
+      matrix_frame_loaded = true;
+    }
+  }
+  else
+  {
     if (!matrix_frame_loaded)
     {
       matrix.loadFrame(LEDMATRIX_DANGER);
       matrix_frame_loaded = true;
     }
   }
+#else
+  if (_wifi_status != WL_CONNECTED)
+  {
+    if (!matrix_frame_loaded)
+    {
+      matrix.loadFrame(LEDMATRIX_DANGER);
+      matrix_frame_loaded = true;
+    }
+  }
+#endif
+
+  _prev_wifi_status = _wifi_status;
 
   IMU_update();
 
@@ -358,6 +395,21 @@ void telemetry_generate()
 
 
 void printWifiStatus() {
+
+#if WIFI_AP_MODE
+  // print the SSID of the network you're attached to:
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+
+  // print your WiFi shield's IP address:
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+
+  // print where to go in a browser:
+  Serial.print("To see this page in action, open a browser to http://");
+  Serial.println(ip);
+#else
   // print the SSID of the network you're attached to:
   Serial.print("SSID: ");
   Serial.println(WiFi.SSID());
@@ -372,4 +424,6 @@ void printWifiStatus() {
   Serial.print("signal strength (RSSI):");
   Serial.print(rssi);
   Serial.println(" dBm");
+#endif
+
 }
