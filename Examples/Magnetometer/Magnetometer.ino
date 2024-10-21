@@ -67,8 +67,13 @@ void loop() //This code is looped forever
     if (TELEMETRY_ENABLE)
     {
       // sprintf(_str_buffer, "t:%8i, x:%06.4f, y:%06.4f, z:%06.4f, mag:%06.6f, A0:%6i",
+<<<<<<< HEAD
       //      current_time, mag_x, mag_y, mag_z, mag_magnitude, analog_out);
       //      Serial.println(_str_buffer);
+=======
+      //       current_time, mag_x, mag_y, mag_z, mag_magnitude, analog_out);
+      // Serial.println(_str_buffer);
+>>>>>>> 462428deb4e3d0ae74209c76d5a907d598b7411e
 
       Serial.print(current_time);
       Serial.print(",");
@@ -77,7 +82,10 @@ void loop() //This code is looped forever
       Serial.print(mag_y);
       Serial.print(",");
       Serial.println(mag_z);
+<<<<<<< HEAD
      
+=======
+>>>>>>> 462428deb4e3d0ae74209c76d5a907d598b7411e
     }
 
   }
