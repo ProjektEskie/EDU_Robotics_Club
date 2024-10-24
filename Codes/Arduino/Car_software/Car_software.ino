@@ -64,7 +64,7 @@ void setup() {
   delay(1);
 
   // Start the IMU
-  IMU_Init();
+  // IMU_Init();
 
   // Start the LED matrix
   matrix.begin();
@@ -180,7 +180,7 @@ void loop() {
 
   _prev_wifi_status = _wifi_status;
 
-  IMU_update();
+  // IMU_update();
 
   CAR_update();
 

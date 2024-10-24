@@ -7,7 +7,6 @@ from nicegui import app, ui, native
 import ipaddress
 import math
 import numpy as np
-import plotly.graph_objects as go
 
 
 iq = queue.SimpleQueue()
