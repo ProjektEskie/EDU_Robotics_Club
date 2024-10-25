@@ -4,7 +4,7 @@
 #include "car.hpp"
 #include "IMU.hpp"
 
-#include "WiFiS3.h"
+#include <ArduinoBLE.h>
 #include <CmdParser.hpp>
 #include <ArduinoJson.h>
 #include "ArduinoGraphics.h"
@@ -12,13 +12,10 @@
 #include "Arduino_LED_Matrix.h"
 #include <cppQueue.h>  
 
-#define WIFI_AP_MODE 0
-#define SECRET_SSID "Robotics_Club"
-#define SECRET_PASS "beep boop"
+#define CAR_NAME "Robotics Club Car"
 
-#define SERVER_PORT_NUMBER 8765
-
-#define JSON_BUFFER_LEN 1024
+#define JSON_BUFFER_LEN 512
+#define BLE_IO_SERVICE_BUFFER_LEN 256
 
 #define OUTPUT_MESSAGE_QUEUE_CAPACITY 10
 
@@ -27,25 +24,24 @@
 #define ARDUINOJSON_USE_DOUBLE 0
 #define ARDUINOJSON_USE_LONG_LONG 0
 
+BLEService car_service("19B10000-E8F2-537E-4F6C-D104768A1214");
+BLECharacteristic telemetry_haracteristic("7b0db1df-67ed-46ef-b091-b4472119ef6d", BLERead | BLENotify, JSON_BUFFER_LEN, true);
+BLECharacteristic input_characteristic("99924646-b9d6-4a51-bda9-ef084d793abf", BLEWrite, BLE_IO_SERVICE_BUFFER_LEN, true);
+BLECharacteristic output_characteristic("8cf10e3b-0e9c-4809-b94a-5217ed9d6902", BLERead | BLENotify, BLE_IO_SERVICE_BUFFER_LEN, true);
+BLEDescriptor millisLabelDescriptor("5078b4d3-9eb6-43f6-b55b-861ac78f388b", "Telemetry Downlink");
+BLEDescriptor input_Descriptor("081db19d-d936-40c5-8cac-06d26f7e7a11", "Input commands");
+BLEDescriptor output_Descriptor("69a085e4-6ae1-4bb8-9e35-9f51fa664f92", "Outgoing messages");
+
+
 operation_data op_data;
-
-
-///////please enter your sensitive data in the Secret tab/arduino_secrets.h
-char ssid[] = SECRET_SSID;        // your network SSID (name)
-char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
-
-int status = WL_IDLE_STATUS;
-
-WiFiServer server(SERVER_PORT_NUMBER);
 
 char _json_buffer[JSON_BUFFER_LEN];
 
-char _input_buffer[CMD_INPUT_BUFFER_LEN];
-int _input_buffer_cur_idx = 0;
-char _output_buffer[CMD_OUTPUT_BUFFER_LEN];
+char _input_buffer[BLE_IO_SERVICE_BUFFER_LEN];
+char _output_buffer[BLE_IO_SERVICE_BUFFER_LEN];
 
-char _queue_buffer[OUTPUT_MESSAGE_QUEUE_CAPACITY][CMD_OUTPUT_BUFFER_LEN];
-cppQueue _output_queue(CMD_OUTPUT_BUFFER_LEN, OUTPUT_MESSAGE_QUEUE_CAPACITY, FIFO, false, _queue_buffer, sizeof(_queue_buffer));
+char _queue_buffer[OUTPUT_MESSAGE_QUEUE_CAPACITY][BLE_IO_SERVICE_BUFFER_LEN];
+cppQueue _output_queue(BLE_IO_SERVICE_BUFFER_LEN, OUTPUT_MESSAGE_QUEUE_CAPACITY, FIFO, false, _queue_buffer, sizeof(_queue_buffer));
 
 CmdParser cmdParser;
 
@@ -57,7 +53,7 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
-  delay(1000);
+  delay(1);
 
   Wire.begin();
   Wire.setClock(400000);
@@ -69,65 +65,8 @@ void setup() {
   // Start the LED matrix
   matrix.begin();
 
-  // check for the WiFi module:
-  if (WiFi.status() == WL_NO_MODULE) {
-    Serial.println("Communication with WiFi module failed!");
-    // don't continue
-    while (true);
-  }
-
-#if WIFI_AP_MODE
-  WiFi.config(IPAddress(192,168,1,1));
-  status = WiFi.beginAP(ssid, pass);
-  if (status != WL_AP_LISTENING) {
-    Serial.println("Creating access point failed");
-    // don't continue
-    matrix.loadFrame(LEDMATRIX_DANGER);
-    while (true);
-  }
-#else
-  Serial.println("Attempting WIFI connection...");
-  // attempt to connect to WiFi network:
-  if (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to SSID: ");
-    Serial.println(ssid);
-    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    status = WiFi.begin(ssid, pass);
-
-    // wait 10 seconds for connection:
-    for (int i=0; i<10; i++)
-    {
-      if (WiFi.status() == WL_CONNECTED)
-      {
-        break;
-      }
-
-      delay(1000);
-    }
-  }
-
-  // display the last 3 digits of the IP address
-
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    matrix.beginDraw();
-    matrix.stroke(0xFFFFFFFF);
-    matrix.textFont(Font_5x7);
-    matrix.beginText(-50, 2, 0xFFFFFF);
-    matrix.println(WiFi.localIP());
-    matrix.endText();
-
-    matrix.endDraw();
-  }
-#endif
-
-  printWifiStatus();
-
   // Setup the car
   CAR_init();
-
-  // start the server
-  server.begin();
 
   // reset the buffers
   helper_clear_input_buffer();
@@ -142,103 +81,12 @@ void loop() {
 
   op_data.time_now = millis();
 
-  static uint8_t _wifi_status = WiFi.status();
-  static uint8_t _prev_wifi_status = _wifi_status;
-  _wifi_status = WiFi.status();
-  static bool matrix_frame_loaded = false;
-  if (_prev_wifi_status != _wifi_status)
-  {
-    matrix_frame_loaded = true;
-  }
-#if WIFI_AP_MODE
-  if (_wifi_status == WL_AP_CONNECTED)
-  {
-    if (!matrix_frame_loaded)
-    {
-      matrix.loadFrame(LEDMATRIX_EMOJI_HAPPY);
-      matrix_frame_loaded = true;
-    }
-  }
-  else
-  {
-    if (!matrix_frame_loaded)
-    {
-      matrix.loadFrame(LEDMATRIX_DANGER);
-      matrix_frame_loaded = true;
-    }
-  }
-#else
-  if (_wifi_status != WL_CONNECTED)
-  {
-    if (!matrix_frame_loaded)
-    {
-      matrix.loadFrame(LEDMATRIX_DANGER);
-      matrix_frame_loaded = true;
-    }
-  }
-#endif
-
-  _prev_wifi_status = _wifi_status;
-
   // IMU_update();
 
   CAR_update();
 
   networking_tasks();
 
-}
-
-void networking_tasks()
-{
-  // listen for incoming clients
-  WiFiClient client = server.available();
-  static uint8_t _is_client_connected = 0;
-  static uint32_t _last_communication_time = op_data.time_now;
-  if (client)
-  {
-    if (client.connected()) {
-      if (_is_client_connected == 0)
-      {
-        // Serial.println("new client");
-      }
-      
-      _is_client_connected = 1;
-      while (client.available()) {
-        char c = client.read();
-        _input_buffer[_input_buffer_cur_idx] = c;
-        _input_buffer_cur_idx++;
-        _last_communication_time = op_data.time_now;
-
-        if (c == '\n') {
-          // end of input command
-          _input_buffer[_input_buffer_cur_idx] = 0; // cap off the string
-          if (_input_buffer_cur_idx > 1)
-          {
-            _input_buffer[_input_buffer_cur_idx-1] = 0; // remove new-line character
-          }
-            
-          cmd_parse();
-          helper_clear_input_buffer();
-          client.println(_json_buffer);
-          client.flush();
-          break;
-        }
-      }
-    }
-
-    if ((op_data.time_now - _last_communication_time) > 2000)
-    {
-      client.stop();
-    }
-  }
-  else
-  {
-    if (_is_client_connected)
-    {
-      helper_clear_input_buffer();
-    }
-    _is_client_connected = 0;
-  }
 }
 
 void cmd_parse()

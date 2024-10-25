@@ -53,7 +53,11 @@ async def main():
                             logger.error("    [Descriptor] %s, Error: %s", descriptor, e)
 
             await client.start_notify("7b0db1df-67ed-46ef-b091-b4472119ef6d", notification_handler)
-            await asyncio.sleep(2.0)
+            await asyncio.sleep(1.0)
+            await client.write_gatt_char('99924646-b9d6-4a51-bda9-ef084d793abf', "Testing 111\0".encode())
+            await client.write_gatt_char('99924646-b9d6-4a51-bda9-ef084d793abf', "Testing 22\0".encode())
+            await client.write_gatt_char('99924646-b9d6-4a51-bda9-ef084d793abf', "Testing 3\0".encode())
+
 
 log_level = logging.INFO
 logging.basicConfig(

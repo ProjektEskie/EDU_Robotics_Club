@@ -6,8 +6,7 @@
 #include "IMU.hpp"
 
 
-#define CMD_INPUT_BUFFER_LEN 256
-#define CMD_OUTPUT_BUFFER_LEN 256
+
 
 enum _op_status_bits
 {
