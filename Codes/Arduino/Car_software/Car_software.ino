@@ -141,8 +141,8 @@ void cmd_parse()
                           right_speed,
                           duration);
       helper_clear_output_buffer();
-      sprintf(_output_buffer, "Success, '%s'. Moving.",
-              cmdParser.getCommand());
+      sprintf(_output_buffer, "Success, '%s'. Moving. Speeds: L%i R%i",
+              cmdParser.getCommand(), left_speed, right_speed);
       helper_queue_messages(_output_buffer);
     }
   }

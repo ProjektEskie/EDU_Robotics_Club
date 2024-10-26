@@ -33,8 +33,10 @@ void helper_queue_messages(const char* message)
 void helper_queue_messages(char* message)
 {
   extern cppQueue _output_queue;
+
   if (strlen(message) < (CMD_OUTPUT_BUFFER_LEN - 1))
   {
+
     _output_queue.push(message);
   }
   else

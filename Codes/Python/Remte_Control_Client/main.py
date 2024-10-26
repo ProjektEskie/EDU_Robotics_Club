@@ -9,6 +9,7 @@ import math
 import numpy as np
 from bleak import BleakScanner, BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
+from bleak.exc import BleakError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ tq = queue.SimpleQueue()
 DEFAULT_CAR_NAME = 'RClub_Car'
 DEFAULT_MAUAL_SPEED='180'
 
-VERSION_STR = '2.0'
+VERSION_STR = '2.1'
 
 TESTING_MODE = False
 
@@ -33,77 +34,12 @@ glob_model['joystick'] = [0,0,0]
 glob_model['joystick_request_speed'] = [0,0]
 glob_model['joystick_car_speed'] = DEFAULT_MAUAL_SPEED
 glob_model['calibration_plot_data'] = queue.SimpleQueue()
-glob_model['ping_plot_data'] = queue.SimpleQueue()
 glob_init_semaphore = threading.Semaphore()
 glob_UI_disconnected = 0
 glob_BLE_connected = 0
 
 class DeviceNotFoundError(Exception):
     pass
-
-# def thread_arduino_comms_loop(input_queue, output_queue):
-#     IP = glob_model['IP']
-#     PORT = 8765
-
-#     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-#         is_connected = False
-#         message_sent = False
-#         n_receive_tries = 0
-#         while True:
-#             global glob_UI_disconnected
-#             if glob_UI_disconnected:
-#                 print("UI disconnect detected, ending comm thread")
-#                 if (is_connected):
-#                     s.close()
-#                 break
-            
-#             if n_receive_tries > 3:
-#                 print("Too many receive failures")
-#                 if (is_connected):
-#                     s.close()
-#                 break
-            
-#             if (not is_connected):
-#                 s.settimeout(2)
-#                 s.connect((IP, PORT))
-#                 is_connected = True
-            
-#             if input_queue.empty():
-#                 input_queue.put(b'query\n')
-                
-#             message = input_queue.get()
-
-#             if not message_sent:
-#                 s.sendall(message)
-#                 message_sent = True
-#             else:
-#                 try:
-#                     data = s.recv(1024)
-#                 except ConnectionResetError as e:
-#                     # this error is generated if the arduino stops sending, no need for action
-#                     s.close()
-#                     is_connected = False
-#                     pass
-            
-#                 except TimeoutError as e:
-#                     print(e)
-#                     break
-                
-#                 if len(data) > 2:
-#                     json_data = json.loads(data)
-                
-#                     output_queue.put(json_data)
-#                     message_sent = False
-#                     n_receive_tries = 0
-#                 else:
-#                     n_receive_tries += 1
-                    
-#             time.sleep(0.1)
-            
-
-        
-        
-#     return   
 
 async def ble_task(input_queue, output_queue, telemetry_Queue):
     target_name = glob_model['CAR_NAME']
@@ -135,7 +71,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue):
                     
                 elif (characteristic.uuid == "8cf10e3b-0e9c-4809-b94a-5217ed9d6902".lower()):
                     # logger.info("%s: %r", "Message from car: ", data)
-                    output_queue.put(data.decode().strip().rstrip('\x00'))
+                    output_queue.put(data.decode().split('\0')[0])
 
             glob_BLE_connected = 2
 
@@ -168,11 +104,12 @@ def backend_init():
         glob_model['is_init'] = True
         glob_model['CAR_NAME'] = DEFAULT_CAR_NAME
         glob_model['data'] = {}
+        glob_model['BLE_Task'] = None
 
 
         
 def backend_connect():
-    asyncio.create_task(ble_task(iq, oq, tq))
+    glob_model['BLE_Task'] = asyncio.create_task(ble_task(iq, oq, tq))
         
 def backend_disconnect():
     global glob_UI_disconnected
@@ -229,7 +166,14 @@ def backend_joystick_move_cmd():
     
 def backend_update():
     
+    global glob_BLE_connected
+
     if glob_model['is_init']:
+
+        if (glob_model['BLE_Task'] is not None):
+            if (glob_model['BLE_Task'].done()):
+                glob_BLE_connected = 0
+
         
         if (not oq.empty()):
             # log_str = '{:12d}:\t{}'.format(glob_model['data']['time_ms'],
@@ -250,14 +194,7 @@ def backend_update():
                 ]
             ]
             
-            # ping_plot_datapoint = [
-            #     int(glob_model['data']['time_ms']),
-            #     int(glob_model['data']['t_last'])
-            # ]
-            
             glob_model['calibration_plot_data'].put(cal_plot_datapoint)
-            # glob_model['ping_plot_data'].put(ping_plot_datapoint)
-
 
 
 def backend_medium_update():
@@ -278,9 +215,7 @@ def backend_slow_update():
             datapoint = glob_model['calibration_plot_data'].get()
             calibration_plot.options['series'][0]['data'] = (datapoint[1])
                 
-        # while not glob_model['ping_plot_data'].empty():
-        #     datapoint = glob_model['ping_plot_data'].get()
-        ping_plot.options['series'][0]['data'][0] = oq.qsize()
+        backlog_plot.options['series'][0]['data'][0] = oq.qsize()
 
         if glob_BLE_connected == 0:
             is_disconnected_chip.set_visibility(True)
@@ -304,13 +239,13 @@ def backend_very_slow_update():
     
     # Testing only    
     if TESTING_MODE:
-        # ping_plot.options['series'][0]['data'][0] = np.random.rand() * 200
+        # backlog_plot.options['series'][0]['data'][0] = np.random.rand() * 200
         calibration_test_data = np.random.rand(4)*3
         calibration_test_data = calibration_test_data.tolist()
         calibration_plot.options['series'][0]['data'] = calibration_test_data
     
     calibration_plot.update()
-    ping_plot.update()
+    backlog_plot.update()
 
 
 
@@ -328,7 +263,7 @@ app.on_disconnect(backend_disconnect)
 
 ui.timer(0, callback=backend_init, once=True)
 ui.timer(0.1, callback=backend_update)
-ui.timer(0.2, callback=backend_medium_update)
+ui.timer(0.3, callback=backend_medium_update)
 ui.timer(0.5, callback=backend_slow_update)
 ui.timer(2, callback=backend_very_slow_update)
 
@@ -367,47 +302,49 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
 
 with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-color: #d7e3f4'):
     ui.markdown('##Robot Status')
-        
-    ui.markdown('###Plots')
-    ui.separator()
-    with ui.scroll_area().classes('w-full h-9/12'):
-        
-        calibration_plot = ui.echart({
-            'xAxis': {'type': 'value', 'min': 0 , 'max': 3},
-            'yAxis': {'type': 'category',
-                        'data': ['System', 'Gyro', 'Accel', 'Mag'],
-                        'inverse': True
-                        },
-            'legend': {'textStyle': {'color': 'gray'}},
-            'series': [
-                {'type': 'bar', 'name': 'IMU Calibration Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
-            ],
-            'grid': {'containLabel': True, 'left': 0},
-            })
-        calibration_plot.classes('w-10/12 h-2/12')
-        
-        
-        ping_plot = ui.echart({
-            'xAxis': {'type': 'value', 'min': 0 , 'max': 10},
-            'yAxis': {'type': 'category', 'data': ['BL'], 'inverse': True,
-                    'nameRotate': 90,},
-            'legend': {'textStyle': {'color': 'gray'}},
-            'series': [
-                {'type': 'bar', 'name': 'Command Backlog', 'data': [0.1]},
-            ],
-            'grid': {'containLabel': True, 'left': 0},
-            })
-        ping_plot.classes('w-10/12 h-2/12')
-    
 
-    ui.separator()
-    with ui.card() as json_card:
-        json_card.tight()
-        json_card.classes('w-11/12')
-        with ui.card_section():
-            ui.label('Raw Data')
-        json_view = ui.json_editor({'content': {'json': {}}})
-        json_view.classes(('w-fit'))
+    with ui.grid(rows='1fr 1fr').classes('h-full gap-0'):
+
+        with ui.scroll_area().classes('w-full h-full'):
+            ui.markdown('###Plots')
+            ui.separator()
+            
+            calibration_plot = ui.echart({
+                'xAxis': {'type': 'value', 'min': 0 , 'max': 3},
+                'yAxis': {'type': 'category',
+                            'data': ['System', 'Gyro', 'Accel', 'Mag'],
+                            'inverse': True
+                            },
+                'legend': {'textStyle': {'color': 'gray'}},
+                'series': [
+                    {'type': 'bar', 'name': 'IMU Calibration Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
+                ],
+                'grid': {'containLabel': True, 'left': 0},
+                })
+            calibration_plot.classes('w-10/12 h-2/12')
+            
+            
+            backlog_plot = ui.echart({
+                'xAxis': {'type': 'value', 'min': 0 , 'max': 10},
+                'yAxis': {'type': 'category', 'data': ['BL'], 'inverse': True,
+                        'nameRotate': 90,},
+                'legend': {'textStyle': {'color': 'gray'}},
+                'series': [
+                    {'type': 'bar', 'name': 'Command Backlog', 'data': [0.1]},
+                ],
+                'grid': {'containLabel': True, 'left': 0},
+                })
+            backlog_plot.classes('w-10/12 h-2/12')
+        
+
+        with ui.column().classes('w-full'):
+
+            ui.markdown('###Telemetry Data')
+            json_view = ui.json_editor({'content': {'json': {}}})
+            json_view.classes(('w-fit h-fit'))
+
+
+
 
 
     
