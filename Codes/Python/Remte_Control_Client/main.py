@@ -155,7 +155,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue):
  
                     await client.write_gatt_char('99924646-b9d6-4a51-bda9-ef084d793abf', message)
 
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.05)
 
     else:
         glob_BLE_connected = 0
@@ -213,7 +213,7 @@ def backend_move_quick_reverse(e):
 def backend_joystick_move_cmd():
     left_speed = 0
     right_speed = 0
-    duration = 1500
+    duration = 500
     magnitude = math.sqrt(glob_model['joystick'][0]**2 + glob_model['joystick'][1]**2)
     max_speed = float(glob_model['joystick_car_speed'])
     if (glob_model['joystick'][0] > 0):
@@ -250,34 +250,37 @@ def backend_update():
                 ]
             ]
             
-            ping_plot_datapoint = [
-                int(glob_model['data']['time_ms']),
-                int(glob_model['data']['t_last'])
-            ]
+            # ping_plot_datapoint = [
+            #     int(glob_model['data']['time_ms']),
+            #     int(glob_model['data']['t_last'])
+            # ]
             
             glob_model['calibration_plot_data'].put(cal_plot_datapoint)
-            glob_model['ping_plot_data'].put(ping_plot_datapoint)
+            # glob_model['ping_plot_data'].put(ping_plot_datapoint)
 
-        
-def backend_slow_update():
+
+
+def backend_medium_update():
     if glob_model['is_init']:
-        
-        json_view.properties['content'] = {'json' : glob_model['data']}
-        json_view.update()
-        
         if glob_model['joystick'][2] == 1:
             if (glob_model['joystick'][0] and glob_model['joystick'][1]):
                 cmd_str = backend_joystick_move_cmd()
                 joystick_label.text = cmd_str
                 backend_enqueue_message(cmd_str)
+
+def backend_slow_update():
+    if glob_model['is_init']:
+        
+        json_view.properties['content'] = {'json' : glob_model['data']}
+        json_view.update()
                 
         while not glob_model['calibration_plot_data'].empty():
             datapoint = glob_model['calibration_plot_data'].get()
             calibration_plot.options['series'][0]['data'] = (datapoint[1])
                 
-        while not glob_model['ping_plot_data'].empty():
-            datapoint = glob_model['ping_plot_data'].get()
-            ping_plot.options['series'][0]['data'][0] = datapoint[1]
+        # while not glob_model['ping_plot_data'].empty():
+        #     datapoint = glob_model['ping_plot_data'].get()
+        ping_plot.options['series'][0]['data'][0] = oq.qsize()
 
         if glob_BLE_connected == 0:
             is_disconnected_chip.set_visibility(True)
@@ -301,7 +304,7 @@ def backend_very_slow_update():
     
     # Testing only    
     if TESTING_MODE:
-        ping_plot.options['series'][0]['data'][0] = np.random.rand() * 200
+        # ping_plot.options['series'][0]['data'][0] = np.random.rand() * 200
         calibration_test_data = np.random.rand(4)*3
         calibration_test_data = calibration_test_data.tolist()
         calibration_plot.options['series'][0]['data'] = calibration_test_data
@@ -325,6 +328,7 @@ app.on_disconnect(backend_disconnect)
 
 ui.timer(0, callback=backend_init, once=True)
 ui.timer(0.1, callback=backend_update)
+ui.timer(0.2, callback=backend_medium_update)
 ui.timer(0.5, callback=backend_slow_update)
 ui.timer(2, callback=backend_very_slow_update)
 
@@ -384,11 +388,12 @@ with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-colo
         
         
         ping_plot = ui.echart({
-            'xAxis': {'type': 'value', 'min': 0 , 'max': 500},
-            'yAxis': {'type': 'category', 'data': ['Ping'], 'inverse': True,
+            'xAxis': {'type': 'value', 'min': 0 , 'max': 10},
+            'yAxis': {'type': 'category', 'data': ['BL'], 'inverse': True,
                     'nameRotate': 90,},
+            'legend': {'textStyle': {'color': 'gray'}},
             'series': [
-                {'type': 'bar', 'name': 'RoundTrip', 'data': [0.1]},
+                {'type': 'bar', 'name': 'Command Backlog', 'data': [0.1]},
             ],
             'grid': {'containLabel': True, 'left': 0},
             })
