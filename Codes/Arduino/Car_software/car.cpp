@@ -7,6 +7,7 @@ void CAR_commit_speed();
 
 extern operation_data op_data;
 
+
 void CAR_init()
 {
   pinMode(PIN_BATTERY_SENSE, INPUT);
