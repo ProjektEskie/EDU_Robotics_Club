@@ -17,7 +17,7 @@ void helper_clear_output_buffer()
 void helper_queue_messages(const char* message)
 {
   extern cppQueue _output_queue;
-  if (sizeof(message) < CMD_OUTPUT_BUFFER_LEN)
+  if (strlen(message) < (CMD_OUTPUT_BUFFER_LEN - 1))
   {
     _output_queue.push(message);
   }
@@ -29,7 +29,7 @@ void helper_queue_messages(const char* message)
 void helper_queue_messages(char* message)
 {
   extern cppQueue _output_queue;
-  if (sizeof(message) < CMD_OUTPUT_BUFFER_LEN)
+  if (strlen(message) < (CMD_OUTPUT_BUFFER_LEN - 1))
   {
     _output_queue.push(message);
   }

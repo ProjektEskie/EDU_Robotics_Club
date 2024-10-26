@@ -82,12 +82,9 @@ void BLE_Comm_update()
         {
           helper_clear_output_buffer();
           _output_queue.pop(_output_buffer);
+          output_characteristic.writeValue(_output_buffer, BLE_IO_SERVICE_BUFFER_LEN, true);
         }
 
-        if (_output_buffer[0] != 0)
-        {
-          output_characteristic.writeValue(_output_buffer, sizeof(_output_buffer));
-        }
       }
     }
     else
@@ -100,5 +97,6 @@ void BLE_Comm_update()
 
 void callback_characteristic_written(BLEDevice central, BLECharacteristic characteristic)
 {
-
+  helper_clear_input_buffer();
+  sprintf(_input_buffer, "%s", input_characteristic.value());
 }

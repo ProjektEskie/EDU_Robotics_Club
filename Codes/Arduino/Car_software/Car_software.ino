@@ -82,6 +82,8 @@ void loop() {
     telemetry_generate();
   }
   BLE_Comm_update();
+
+  cmd_parse();
 }
 
 void cmd_parse()
@@ -89,68 +91,78 @@ void cmd_parse()
   // Serial.print("cmd_parse: parsing: ");
   // Serial.println(_input_buffer);
 
-    if (cmdParser.parseCmd(_input_buffer) != CMDPARSER_ERROR) {
-      // Serial.print("Command: ");
-      // Serial.println(cmdParser.getCommand());
+  // Exit immediately if the input buffer is empty
+  if (_input_buffer[0] == 0)
+  {
+    return;
+  }
 
-      // Serial.print("Size of parameter: ");
-      // Serial.println(cmdParser.getParamCount());
+  if (cmdParser.parseCmd(_input_buffer) != CMDPARSER_ERROR) {
+    // Serial.print("Command: ");
+    // Serial.println(cmdParser.getCommand());
 
-      // Serial.print("Param 1: ");
-      // Serial.println(cmdParser.getCmdParam(1));
-    }
-    else
+    // Serial.print("Size of parameter: ");
+    // Serial.println(cmdParser.getParamCount());
+
+    // Serial.print("Param 1: ");
+    // Serial.println(cmdParser.getCmdParam(1));
+  }
+  else
+  {
+    Serial.println("Invalid command");
+    helper_queue_messages("Invalid command");
+    helper_clear_input_buffer();
+    return;
+  }
+
+  if (strcmp("Hello", cmdParser.getCommand()) == 0)
+  {
+    callback_funct_hello();
+  }
+  else if (strcmp("car_m_move", cmdParser.getCommand()) == 0)
+  {
+    if (cmdParser.getParamCount() != 3)
     {
-      Serial.println("Invalid command");
       helper_clear_output_buffer();
-      return;
-    }
-
-    if (strcmp("Hello", cmdParser.getCommand()) == 0)
-    {
-      callback_funct_hello();
-    }
-    else if (strcmp("car_m_move", cmdParser.getCommand()) == 0)
-    {
-      if (cmdParser.getParamCount() != 3)
-      {
-        helper_clear_output_buffer();
-        sprintf(_output_buffer, "Error, '%s' command accepts exactly 3 arguements",
-                cmdParser.getCommand());
-        helper_queue_messages(_output_buffer);
-        helper_queue_messages("Info: car_m_move (car, manual move) example usage:");
-        helper_queue_messages("Info: car_m_move [left_speed] [right_speed] [duration_ms]");
-        helper_queue_messages("Info: car_m_move 200 200 1500");
-        helper_queue_messages("Info: car_m_move left_speed and right_speed should be between -255 to 255");
-      }
-      else
-      {
-        int left_speed = atoi(cmdParser.getCmdParam(1));
-        int right_speed = atoi(cmdParser.getCmdParam(2));
-        uint32_t duration = atol(cmdParser.getCmdParam(3));
-        callback_car_m_move(left_speed,
-                            right_speed,
-                            duration);
-        helper_clear_output_buffer();
-        sprintf(_output_buffer, "Success, '%s'. Moving.",
-                cmdParser.getCommand());
-        helper_queue_messages(_output_buffer);
-      }
-    }
-    else if (strcmp("help", cmdParser.getCommand()) == 0)
-    {
-      callback_func_help();
-    }
-    else
-    {
-      // Command not found
-      helper_clear_output_buffer();
-      sprintf(_output_buffer, "Error, command not found: '%s'.Type 'help' for a list of known commands.",
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 3 arguements",
               cmdParser.getCommand());
       helper_queue_messages(_output_buffer);
-      Serial.println(_output_buffer);
-
+      helper_queue_messages("Info: car_m_move (car, manual move) example usage:");
+      helper_queue_messages("Info: car_m_move [left_speed] [right_speed] [duration_ms]");
+      helper_queue_messages("Info: car_m_move 200 200 1500");
+      helper_queue_messages("Info: car_m_move left_speed and right_speed should be between -255 to 255");
     }
+    else
+    {
+      int left_speed = atoi(cmdParser.getCmdParam(1));
+      int right_speed = atoi(cmdParser.getCmdParam(2));
+      uint32_t duration = atol(cmdParser.getCmdParam(3));
+      callback_car_m_move(left_speed,
+                          right_speed,
+                          duration);
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "Success, '%s'. Moving.",
+              cmdParser.getCommand());
+      helper_queue_messages(_output_buffer);
+    }
+  }
+  else if (strcmp("help", cmdParser.getCommand()) == 0)
+  {
+    callback_func_help();
+  }
+  else
+  {
+    // Command not found
+    helper_clear_output_buffer();
+    sprintf(_output_buffer, "Error, command not found: '%s'.Type 'help' for a list of known commands.",
+            cmdParser.getCommand());
+    helper_queue_messages(_output_buffer);
+    Serial.println(_output_buffer);
+
+  }
+
+  // Command has been parsed, clear the buffer for next time
+  helper_clear_input_buffer();
 
 }
 
