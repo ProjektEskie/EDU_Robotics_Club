@@ -17,13 +17,17 @@ void helper_clear_output_buffer()
 void helper_queue_messages(const char* message)
 {
   extern cppQueue _output_queue;
+  extern char _output_buffer[];
   if (strlen(message) < (CMD_OUTPUT_BUFFER_LEN - 1))
   {
-    _output_queue.push(message);
+    sprintf(_output_buffer, "%s", message);
+    _output_queue.push(_output_buffer);
   }
   else
   {
     Serial.println("Error, message too long for output buffer.");
+    Serial.println(message);
+    Serial.println(strlen(message));
   }
 }
 void helper_queue_messages(char* message)
@@ -36,5 +40,7 @@ void helper_queue_messages(char* message)
   else
   {
     Serial.println("Error, message too long for output buffer.");
+    Serial.println(message);
+    Serial.println(strlen(message));
   }
 }

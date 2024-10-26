@@ -4,18 +4,23 @@ import socket
 import queue
 import json
 from nicegui import app, ui, native
-import ipaddress
+import asyncio
 import math
 import numpy as np
+from bleak import BleakScanner, BleakClient
+from bleak.backends.characteristic import BleakGATTCharacteristic
+import logging
 
+logger = logging.getLogger(__name__)
 
 iq = queue.SimpleQueue()
 oq = queue.SimpleQueue()
+tq = queue.SimpleQueue()
 
-DEFAULT_IP = '192.168.1.'
+DEFAULT_CAR_NAME = 'RClub_Car'
 DEFAULT_MAUAL_SPEED='180'
 
-VERSION_STR = '1.0'
+VERSION_STR = '2.0'
 
 TESTING_MODE = False
 
@@ -31,111 +36,161 @@ glob_model['calibration_plot_data'] = queue.SimpleQueue()
 glob_model['ping_plot_data'] = queue.SimpleQueue()
 glob_init_semaphore = threading.Semaphore()
 glob_UI_disconnected = 0
+glob_BLE_connected = 0
 
-def thread_arduino_comms_loop(input_queue, output_queue):
-    IP = glob_model['IP']
-    PORT = 8765
+class DeviceNotFoundError(Exception):
+    pass
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        is_connected = False
-        message_sent = False
-        n_receive_tries = 0
-        while True:
-            global glob_UI_disconnected
-            if glob_UI_disconnected:
-                print("UI disconnect detected, ending comm thread")
-                if (is_connected):
-                    s.close()
-                break
-            
-            if n_receive_tries > 3:
-                print("Too many receive failures")
-                if (is_connected):
-                    s.close()
-                break
-            
-            if (not is_connected):
-                s.settimeout(2)
-                s.connect((IP, PORT))
-                is_connected = True
-            
-            if input_queue.empty():
-                input_queue.put(b'query\n')
-                
-            message = input_queue.get()
+# def thread_arduino_comms_loop(input_queue, output_queue):
+#     IP = glob_model['IP']
+#     PORT = 8765
 
-            if not message_sent:
-                s.sendall(message)
-                message_sent = True
-            else:
-                try:
-                    data = s.recv(1024)
-                except ConnectionResetError as e:
-                    # this error is generated if the arduino stops sending, no need for action
-                    s.close()
-                    is_connected = False
-                    pass
+#     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+#         is_connected = False
+#         message_sent = False
+#         n_receive_tries = 0
+#         while True:
+#             global glob_UI_disconnected
+#             if glob_UI_disconnected:
+#                 print("UI disconnect detected, ending comm thread")
+#                 if (is_connected):
+#                     s.close()
+#                 break
             
-                except TimeoutError as e:
-                    print(e)
-                    break
+#             if n_receive_tries > 3:
+#                 print("Too many receive failures")
+#                 if (is_connected):
+#                     s.close()
+#                 break
+            
+#             if (not is_connected):
+#                 s.settimeout(2)
+#                 s.connect((IP, PORT))
+#                 is_connected = True
+            
+#             if input_queue.empty():
+#                 input_queue.put(b'query\n')
                 
-                if len(data) > 2:
-                    json_data = json.loads(data)
+#             message = input_queue.get()
+
+#             if not message_sent:
+#                 s.sendall(message)
+#                 message_sent = True
+#             else:
+#                 try:
+#                     data = s.recv(1024)
+#                 except ConnectionResetError as e:
+#                     # this error is generated if the arduino stops sending, no need for action
+#                     s.close()
+#                     is_connected = False
+#                     pass
+            
+#                 except TimeoutError as e:
+#                     print(e)
+#                     break
                 
-                    output_queue.put(json_data)
-                    message_sent = False
-                    n_receive_tries = 0
-                else:
-                    n_receive_tries += 1
+#                 if len(data) > 2:
+#                     json_data = json.loads(data)
+                
+#                     output_queue.put(json_data)
+#                     message_sent = False
+#                     n_receive_tries = 0
+#                 else:
+#                     n_receive_tries += 1
                     
-            time.sleep(0.1)
+#             time.sleep(0.1)
             
 
         
         
-    return
-        
+#     return   
+
+async def ble_task(input_queue, output_queue, telemetry_Queue):
+    target_name = glob_model['CAR_NAME']
+    global glob_BLE_connected
+    glob_BLE_connected = 1
+    devices = await BleakScanner.discover()
+    target_found = False
+    for d in devices:
+        print(d)
+        if d.name == target_name:
+            target_found = True
+            break
+    target_device = d
+
+    if target_found:
+        async with BleakClient(target_device) as client:
+
+            async def notification_handler(characteristic: BleakGATTCharacteristic, data: bytearray):
+                """Simple notification handler which prints the data received."""
+                # logger.info("%s: %r", characteristic.uuid, data.decode())
+
+                if (characteristic.uuid == "19B10001-E8F2-537E-4F6C-D104768A1214".lower()):
+
+                    value = await client.read_gatt_char("7b0db1df-67ed-46ef-b091-b4472119ef6d")
+                    value = value.decode().strip().rstrip('\x00')
+                    # logger.info("%s: %r", "Expaned Telemetry", value)
+                    json_data = json.loads(value)
+                    telemetry_Queue.put(json_data)
+                    
+                elif (characteristic.uuid == "8cf10e3b-0e9c-4809-b94a-5217ed9d6902".lower()):
+                    # logger.info("%s: %r", "Message from car: ", data)
+                    output_queue.put(data.decode().strip().rstrip('\x00'))
+
+            glob_BLE_connected = 2
+
+            await client.start_notify("19B10001-E8F2-537E-4F6C-D104768A1214", notification_handler)
+            await client.start_notify("8cf10e3b-0e9c-4809-b94a-5217ed9d6902", notification_handler)
+
+            while True:
+                global glob_UI_disconnected
+                if glob_UI_disconnected:
+                    print("UI disconnect detected, ending comm thread")
+                    break
+
+                if (not input_queue.empty()):
+                    message = input_queue.get()
+                    message += "\0"
+                    message = message.encode()
+ 
+                    await client.write_gatt_char('99924646-b9d6-4a51-bda9-ef084d793abf', message)
+
+                await asyncio.sleep(0.1)
+
+    else:
+        glob_BLE_connected = 0
+        raise DeviceNotFoundError
+
+
+
 def backend_init():
-        arduino_comms_thread = threading.Thread(target=thread_arduino_comms_loop, args=[iq, oq])
-        glob_model['comms_thread'] = arduino_comms_thread
+
         glob_model['is_init'] = True
-        glob_model['IP'] = '192.168.1.16'
+        glob_model['CAR_NAME'] = DEFAULT_CAR_NAME
         glob_model['data'] = {}
-        
-        print("hi", threading.current_thread())
+
 
         
 def backend_connect():
-    try:
-        glob_model['comms_thread'].start()
-    except RuntimeError:
-        arduino_comms_thread = threading.Thread(target=thread_arduino_comms_loop, args=[iq, oq])
-        glob_model['comms_thread'] = arduino_comms_thread
-        glob_model['comms_thread'].start()
+    asyncio.create_task(ble_task(iq, oq, tq))
         
 def backend_disconnect():
-    if (glob_model['comms_thread'].is_alive()):
-        global glob_UI_disconnected
-        glob_UI_disconnected = 1
+    global glob_UI_disconnected
+    global glob_BLE_connected
+    glob_UI_disconnected = 1
+    glob_BLE_connected = 1
         
 def backend_send_msg():
-    message = comm_text_input.value + '\n'
+    message = comm_text_input.value
     backend_enqueue_message(message)
         
 def backend_enqueue_message(message):
-    if (glob_model['comms_thread'].is_alive()):
-        iq.put(message.encode())
+    if glob_BLE_connected:
+        iq.put(message)
         comm_text_input.value = ''
     
-def backend_ip_validation(value):
-    try:
-        ipaddress.ip_address(value)
-    except ValueError:
-        return "Invalid IP address"
-    
-def backend_setip(e):
-    glob_model['IP'] = e.value
+def backend_set_car_name(e):
+    glob_model['CAR_NAME'] = e.value
     
 def backend_joystick_max_speed(e):
     glob_model['joystick_request_speed'] = e.value
@@ -148,12 +203,12 @@ def backend_joystick_end():
     glob_model['joystick']=[0,0,1]
     joystick_label.text = ''
     cmd_str = backend_joystick_move_cmd()
-    backend_enqueue_message(cmd_str + '\n')
+    backend_enqueue_message(cmd_str)
     glob_model['joystick']=[0,0,0]
     
 def backend_move_quick_reverse(e):
     cmd_str = 'car_m_move {} {} {}'.format(-200, -200, 750)
-    backend_enqueue_message(cmd_str + '\n')
+    backend_enqueue_message(cmd_str)
     
 def backend_joystick_move_cmd():
     left_speed = 0
@@ -177,13 +232,14 @@ def backend_update():
     if glob_model['is_init']:
         
         if (not oq.empty()):
-            glob_model['data'] = oq.get()
+            # log_str = '{:12d}:\t{}'.format(glob_model['data']['time_ms'],
+            #                              glob_model['data']['message'])
+            log_str = oq.get()
+            comm_log.push(log_str)
+
+        if (not tq.empty()):
+            glob_model['data'] = tq.get()
             
-            if len(glob_model['data']['message']) > 0:
-                log_str = '{:12d}:\t{}'.format(glob_model['data']['time_ms'],
-                                         glob_model['data']['message'])
-                comm_log.push(log_str)
-                
             cal_plot_datapoint = [
                 int(glob_model['data']['time_ms']),
                 [
@@ -201,13 +257,6 @@ def backend_update():
             
             glob_model['calibration_plot_data'].put(cal_plot_datapoint)
             glob_model['ping_plot_data'].put(ping_plot_datapoint)
-            
-        if glob_model['comms_thread'].is_alive():
-            is_disconnected_chip.set_visibility(False)
-            is_connected_chip.set_visibility(True)
-        else:
-            is_disconnected_chip.set_visibility(True)
-            is_connected_chip.set_visibility(False)
 
         
 def backend_slow_update():
@@ -220,7 +269,7 @@ def backend_slow_update():
             if (glob_model['joystick'][0] and glob_model['joystick'][1]):
                 cmd_str = backend_joystick_move_cmd()
                 joystick_label.text = cmd_str
-                backend_enqueue_message(cmd_str + '\n')
+                backend_enqueue_message(cmd_str)
                 
         while not glob_model['calibration_plot_data'].empty():
             datapoint = glob_model['calibration_plot_data'].get()
@@ -229,6 +278,23 @@ def backend_slow_update():
         while not glob_model['ping_plot_data'].empty():
             datapoint = glob_model['ping_plot_data'].get()
             ping_plot.options['series'][0]['data'][0] = datapoint[1]
+
+        if glob_BLE_connected == 0:
+            is_disconnected_chip.set_visibility(True)
+            is_connecting_chip.set_visibility(False)
+            is_connected_chip.set_visibility(False)
+        elif glob_BLE_connected == 1:
+            is_disconnected_chip.set_visibility(False)
+            is_connecting_chip.set_visibility(True)
+            is_connected_chip.set_visibility(False)
+        elif glob_BLE_connected == 2:
+            is_disconnected_chip.set_visibility(False)
+            is_connecting_chip.set_visibility(False)
+            is_connected_chip.set_visibility(True)
+        else:
+            is_disconnected_chip.set_visibility(False)
+            is_connecting_chip.set_visibility(False)
+            is_connected_chip.set_visibility(False)
 
             
 def backend_very_slow_update():
@@ -243,7 +309,16 @@ def backend_very_slow_update():
     calibration_plot.update()
     ping_plot.update()
 
-    
+
+
+log_level = logging.INFO
+logging.basicConfig(
+    level=log_level,
+    format="%(levelname)s: %(message)s",
+)
+
+# UI CODE STARTS HERE ======================
+
 app.native.start_args['debug'] = False
 app.native.settings['ALLOW_DOWNLOADS'] = True
 app.on_disconnect(backend_disconnect)
@@ -263,16 +338,15 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
 
         ui.space()
         
-        ip_textbox = ui.input(label='Enter IP address to connect',
-                                value=DEFAULT_IP,
-                                on_change=backend_setip,
-                                validation=backend_ip_validation)
+        ip_textbox = ui.input(label='Enter the name of the car to connect',
+                                value=DEFAULT_CAR_NAME,
+                                on_change=backend_set_car_name)
         
         ip_textbox.on('keydown.enter', backend_connect) 
         
 
         is_disconnected_chip = ui.chip("Offline",
-                                    icon='blocked',
+                                    icon='block',
                                     color='red')
         is_disconnected_chip.set_enabled(False)
         is_connected_chip = ui.chip('Connected',
@@ -280,6 +354,11 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
                                     color='green')
         is_connected_chip.set_enabled(False)
         is_connected_chip.set_visibility(False)
+        is_connecting_chip = ui.chip('Connecting',
+                                    icon='history',
+                                    color='orange')
+        is_connecting_chip.set_enabled(False)
+        is_connecting_chip.set_visibility(False)
         
 
 with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-color: #d7e3f4'):
@@ -305,7 +384,7 @@ with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-colo
         
         
         ping_plot = ui.echart({
-            'xAxis': {'type': 'value', 'min': 0 , 'max': 400},
+            'xAxis': {'type': 'value', 'min': 0 , 'max': 500},
             'yAxis': {'type': 'category', 'data': ['Ping'], 'inverse': True,
                     'nameRotate': 90,},
             'series': [
