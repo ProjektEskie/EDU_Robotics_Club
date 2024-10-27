@@ -27,7 +27,7 @@
 *.lib
 
 # Executables
-*.exe
+# *.exe
 *.out
 *.app
 Examples/Wifi_Cmd_Interface/arduino_secrets.h
@@ -505,3 +505,4 @@ Codes/RCC.exe.WebView2/EBWebView/Default/optimization_guide_hint_cache_store/LOG
 Codes/RCC.exe.WebView2/EBWebView/Default/parcel_tracking_db/LOG.old
 Codes/RCC.exe.WebView2/EBWebView/Default/shared_proto_db/LOG.old
 Codes/RCC.exe.WebView2/EBWebView/Default/shared_proto_db/metadata/LOG.old
+Codes/Python/Remte_Control_Client/dist/RCC.exe
