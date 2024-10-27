@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('c:\\Users\\cy201321\\OneDrive - Danaher\\Documents\\GitHub\\EDU_Robotics_Club\\.venv\\lib\\site-packages\\nicegui', 'nicegui')],
+    datas=[('c:\\Users\\markm\\Documents\\Github\\EDU_Robotics_Club\\.venv\\Lib\\site-packages\\nicegui', 'nicegui')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
