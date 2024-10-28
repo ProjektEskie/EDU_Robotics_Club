@@ -11,8 +11,9 @@ void IMU_Init()
   op_data.imu.last_update_time = 0;
   IMU_reset_n_updates_counter();
 
-  op_data.imu.mySensor.setOperationMode(OPERATION_MODE_NDOF);   // IMU Mode (no magnetometer)
+  op_data.imu.mySensor.setOperationMode(OPERATION_MODE_IMUPLUS);   // IMU Mode (no magnetometer)
   op_data.imu.mySensor.setUpdateMode(MANUAL);	
+  op_data.imu.mySensor.disableAnyMotion();
 
   op_data.imu.euler_heading = 0;
   op_data.imu.euler_pitch = 0;
@@ -41,19 +42,18 @@ void IMU_update()
     op_data.imu.mySensor.updateLinearAccel();
     op_data.imu.mySensor.updateMag();
 
-    op_data.imu.euler_heading = op_data.imu.mySensor.readEulerHeading();
-    op_data.imu.euler_roll = op_data.imu.mySensor.readEulerRoll();
-    op_data.imu.euler_pitch = op_data.imu.mySensor.readEulerPitch();
-
     op_data.imu.system_calibration_status = op_data.imu.mySensor.readSystemCalibStatus();
     op_data.imu.accel_calibration_status = op_data.imu.mySensor.readAccelCalibStatus();
     op_data.imu.gryo_calibration_status = op_data.imu.mySensor.readGyroCalibStatus();
     op_data.imu.mag_calibration_status = op_data.imu.mySensor.readMagCalibStatus();
 
-    op_data.imu.mySensor.readLinearAcceleration(
-      op_data.imu.linaccel_x,
-      op_data.imu.linaccel_y,
-      op_data.imu.linaccel_z);
+    op_data.imu.euler_heading = op_data.imu.mySensor.readEulerHeading();
+    op_data.imu.euler_roll = op_data.imu.mySensor.readEulerRoll();
+    op_data.imu.euler_pitch = op_data.imu.mySensor.readEulerPitch();
+
+    op_data.imu.linaccel_x = op_data.imu.mySensor.readLinearAccelX();
+    op_data.imu.linaccel_y = op_data.imu.mySensor.readLinearAccelY();
+    op_data.imu.linaccel_z = op_data.imu.mySensor.readLinearAccelZ();
   }
 }
 
