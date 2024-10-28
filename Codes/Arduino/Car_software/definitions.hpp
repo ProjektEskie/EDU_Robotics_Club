@@ -4,14 +4,15 @@
 #include <arduino.h>
 #include "car.hpp"
 #include "IMU.hpp"
+#include "BLE_Comm.hpp"
 
 #define BLE_CAR_NAME "RClub_Car"
 
-#define JSON_BUFFER_LEN 400
+#define JSON_BUFFER_LEN 600
 #define BLE_IO_SERVICE_BUFFER_LEN 240
 #define CMD_INPUT_BUFFER_LEN BLE_IO_SERVICE_BUFFER_LEN
 #define CMD_OUTPUT_BUFFER_LEN BLE_IO_SERVICE_BUFFER_LEN
-#define TELEMETRY_UPDATE_INTERNVAL 400
+#define TELEMETRY_UPDATE_INTERNVAL 500
 #define BLE_OUTPUT_REFRESH_INTERVAL 100
 
 enum _op_status_bits
@@ -30,6 +31,7 @@ typedef struct _operation_data
 
   imu_data imu;
   car_data car;
+  ble_data ble;
 
 } operation_data;
 

@@ -197,6 +197,7 @@ void telemetry_generate()
   doc["status"] = op_data.status;
   doc["time_ms"] = op_data.time_now;
   doc["t_last"] = op_data.time_since_last_telemetry;
+  doc["ble_rssi"] = op_data.ble.rssi;
 
   JsonObject IMU = doc["IMU"].to<JsonObject>();
   IMU["last_updated"] = op_data.imu.last_update_time;
