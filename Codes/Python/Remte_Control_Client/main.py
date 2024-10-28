@@ -34,6 +34,7 @@ glob_model['joystick'] = [0,0,0]
 glob_model['joystick_request_speed'] = [0,0]
 glob_model['joystick_car_speed'] = DEFAULT_MAUAL_SPEED
 glob_model['calibration_plot_data'] = queue.SimpleQueue()
+glob_model['telemetry_str_len'] = 0
 glob_init_semaphore = threading.Semaphore()
 glob_UI_disconnected = 0
 glob_BLE_connected = 0
@@ -64,7 +65,8 @@ async def ble_task(input_queue, output_queue, telemetry_Queue):
                 if (characteristic.uuid == "19B10001-E8F2-537E-4F6C-D104768A1214".lower()):
 
                     value = await client.read_gatt_char("7b0db1df-67ed-46ef-b091-b4472119ef6d")
-                    value = value.decode().strip().rstrip('\x00')
+                    value = value.decode().split('\0')[0]
+                    glob_model['telemetry_str_len'] = len(value)
                     # logger.info("%s: %r", "Expaned Telemetry", value)
                     json_data = json.loads(value)
                     telemetry_Queue.put(json_data)
