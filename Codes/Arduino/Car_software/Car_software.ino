@@ -48,7 +48,7 @@ void setup() {
   delay(1);
 
   // Start the IMU
-  // IMU_Init();
+  IMU_Init();
 
   // Start the LED matrix
   matrix.begin();
@@ -73,7 +73,7 @@ void loop() {
 
   op_data.time_now = millis();
 
-  // IMU_update();
+  IMU_update();
 
   CAR_update();
 
