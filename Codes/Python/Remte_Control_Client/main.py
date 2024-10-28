@@ -130,7 +130,7 @@ def backend_set_car_name(e):
     glob_model['CAR_NAME'] = e.value
     
 def backend_joystick_max_speed(e):
-    glob_model['joystick_request_speed'] = e.value
+    glob_model['joystick_car_speed'] = e.value
     
 def backend_joystick_compute(e):
     glob_model['joystick'] = [e.x, e.y, 1]
