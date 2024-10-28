@@ -11,7 +11,7 @@ void IMU_Init()
   op_data.imu.last_update_time = 0;
   IMU_reset_n_updates_counter();
 
-  op_data.imu.mySensor.setOperationMode(OPERATION_MODE_IMUPLUS);   // IMU Mode (no magnetometer)
+  op_data.imu.mySensor.setOperationMode(OPERATION_MODE_NDOF);   // IMU Mode (no magnetometer)
   op_data.imu.mySensor.setUpdateMode(MANUAL);	
 
   op_data.imu.euler_heading = 0;
@@ -38,7 +38,7 @@ void IMU_update()
     op_data.imu.mySensor.updateEuler();        //Update the Euler data into the structure of the object
     op_data.imu.mySensor.updateCalibStatus();  //Update the Calibration Status
     op_data.imu.mySensor.updateLinearAccel();
-    // op_data.imu.mySensor.updateMag();
+    op_data.imu.mySensor.updateMag();
 
     op_data.imu.euler_heading = op_data.imu.mySensor.readEulerHeading();
     op_data.imu.euler_roll = op_data.imu.mySensor.readEulerRoll();
