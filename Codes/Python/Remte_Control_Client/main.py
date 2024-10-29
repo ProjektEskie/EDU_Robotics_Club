@@ -8,6 +8,7 @@ import numpy as np
 from bleak import BleakScanner, BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ tq = queue.SimpleQueue()
 DEFAULT_CAR_NAME = 'RClub_Car'
 DEFAULT_MAUAL_SPEED='180'
 
-VERSION_STR = '2.2'
+VERSION_STR = '2.3'
 
 TESTING_MODE = False
 
@@ -32,6 +33,7 @@ glob_model['joystick_request_speed'] = [0,0]
 glob_model['joystick_car_speed'] = DEFAULT_MAUAL_SPEED
 glob_model['calibration_plot_data'] = queue.SimpleQueue()
 glob_model['telemetry_str_len'] = 0
+glob_model['last_telemetry_time'] = 0
 glob_init_semaphore = threading.Semaphore()
 glob_UI_disconnected = 0
 glob_BLE_connected = 0
@@ -67,6 +69,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue):
                     # logger.info("%s: %r", "Expaned Telemetry", value)
                     json_data = json.loads(value)
                     telemetry_Queue.put(json_data)
+                    glob_model['last_telemetry_time'] = time.monotonic()
                     
                 elif (characteristic.uuid == "8cf10e3b-0e9c-4809-b94a-5217ed9d6902".lower()):
                     # logger.info("%s: %r", "Message from car: ", data)
@@ -77,10 +80,18 @@ async def ble_task(input_queue, output_queue, telemetry_Queue):
             await client.start_notify("19B10001-E8F2-537E-4F6C-D104768A1214", notification_handler)
             await client.start_notify("8cf10e3b-0e9c-4809-b94a-5217ed9d6902", notification_handler)
 
+            glob_model['last_telemetry_time'] = time.monotonic()
+
             while True:
                 global glob_UI_disconnected
+                
                 if glob_UI_disconnected:
                     print("UI disconnect detected, ending comm thread")
+                    break
+                
+                if ((time.monotonic() - glob_model['last_telemetry_time']) > 2):
+                    print(time.monotonic, glob_model['last_telemetry_time'])
+                    print("Telemetry lost, disconnecting")
                     break
 
                 if (not input_queue.empty()):
@@ -90,7 +101,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue):
  
                     await client.write_gatt_char('99924646-b9d6-4a51-bda9-ef084d793abf', message)
 
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.01)
 
     else:
         glob_BLE_connected = 0
@@ -196,9 +207,11 @@ def backend_update():
             
             glob_model['calibration_plot_data'].put(cal_plot_datapoint)
 
-            glob_model['ble_rssi'] = 100 - (float(glob_model['data']['ble_rssi']) * -1.0)
+            glob_model['ble_rssi'] = float(glob_model['data']['ble_rssi']) * -1.0
             if (glob_model['ble_rssi'] == -127):
-                glob_model['ble_rssi'] = 0
+                glob_model['ble_rssi'] = 100
+                
+            
 
 
 def backend_medium_update():
@@ -220,7 +233,11 @@ def backend_slow_update():
             calibration_plot.options['series'][0]['data'] = (datapoint[1])
                 
 
-        rssi_plot.options['series'][0]['data'][0] = glob_model['ble_rssi']
+        rssi_value = round((100 - glob_model['ble_rssi'])/60, 2)
+        rssi_bar.value = rssi_value
+        
+        telemetry_lengh_bar.value = round(glob_model['telemetry_str_len']/500, 2)
+        
 
         if glob_BLE_connected == 0:
             is_disconnected_chip.set_visibility(True)
@@ -244,13 +261,12 @@ def backend_very_slow_update():
     
     # Testing only    
     if TESTING_MODE:
-        # rssi_plot.options['series'][0]['data'][0] = np.random.rand() * 200
         calibration_test_data = np.random.rand(4)*3
         calibration_test_data = calibration_test_data.tolist()
         calibration_plot.options['series'][0]['data'] = calibration_test_data
     
     calibration_plot.update()
-    rssi_plot.update()
+
 
 
 
@@ -307,48 +323,48 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
 
 with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-color: #d7e3f4'):
     ui.markdown('##Robot Status')
-
-    with ui.grid(rows='1fr 1fr').classes('h-full gap-0'):
-
-        with ui.scroll_area().classes('w-full h-full'):
-            ui.markdown('###Plots')
-            ui.separator()
-            
-            calibration_plot = ui.echart({
-                'xAxis': {'type': 'value', 'min': 0 , 'max': 3},
-                'yAxis': {'type': 'category',
-                            'data': ['System', 'Gyro', 'Accel', 'Mag'],
-                            'inverse': True
-                            },
-                'legend': {'textStyle': {'color': 'gray'}},
-                'series': [
-                    {'type': 'bar', 'name': 'IMU Calibration Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
-                ],
-                'grid': {'containLabel': True, 'left': 0},
-                })
-            calibration_plot.classes('w-10/12 h-2/12')
-            
-            
-            rssi_plot = ui.echart({
-                'xAxis': {'type': 'value', 'min': 0 , 'max': 60},
-                'yAxis': {'type': 'category', 'data': [''], 'inverse': True,
-                        'nameRotate': 90,},
-                'legend': {'textStyle': {'color': 'gray'}},
-                'series': [
-                    {'type': 'bar', 'name': 'Signal Strength', 'data': [0.1]},
-                ],
-                'grid': {'containLabel': True, 'left': 0},
-                })
-            rssi_plot.classes('w-10/12 h-2/12')
+    
+    with ui.tabs().classes('w-full') as tabs:
+        vis = ui.tab('Visualizations')
+        raw = ui.tab('Raw Data')
         
-
-        with ui.column().classes('w-full'):
-
+    with ui.tab_panels(tabs, value=vis).classes('w-full'):
+        with ui.tab_panel(vis):
+            
+            with ui.scroll_area().classes('w-full'):
+                ui.markdown('###Plots')
+                ui.separator()
+                
+                calibration_plot = ui.echart({
+                    'xAxis': {'type': 'value', 'min': 0 , 'max': 3},
+                    'yAxis': {'type': 'category',
+                                'data': ['System', 'Gyro', 'Accel', 'Mag'],
+                                'inverse': True
+                                },
+                    'legend': {'textStyle': {'color': 'gray'}},
+                    'series': [
+                        {'type': 'bar', 'name': 'IMU Calibration Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
+                    ],
+                    'grid': {'containLabel': True, 'left': 0},
+                    })
+                calibration_plot.classes('w-10/12 h-3/12')
+                
+            
+            ui.separator()
+            ui.markdown('###Bars')
+            with ui.grid(columns='1fr 1fr').classes('h-6/12 gap-0'):
+                
+                ui.label("Signal Strength")
+                rssi_bar = ui.linear_progress()
+                
+                ui.label("Telemetry Buffer")
+                telemetry_lengh_bar = ui.linear_progress()
+                
+        with ui.tab_panel(raw):
+            ui.separator()
             ui.markdown('###Telemetry Data')
             json_view = ui.json_editor({'content': {'json': {}}})
             json_view.classes(('w-fit h-fit'))
-
-
 
 
 
