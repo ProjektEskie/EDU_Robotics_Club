@@ -29,6 +29,8 @@ typedef struct _operation_data
   uint32_t time_since_last_telemetry;
   uint8_t has_new_telemetry;
 
+  float average_cycle_time;
+
   imu_data imu;
   car_data car;
   ble_data ble;

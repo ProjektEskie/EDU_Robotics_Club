@@ -64,6 +64,7 @@ void setup() {
 
   // Initalized some numbers
   op_data.time_since_last_telemetry = 0;
+  op_data.average_cycle_time = 0;
 
   Serial.println("Ready!");
 }
