@@ -412,9 +412,6 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
             ui.label("Placeolder")
 
 
-      
-
-
 glob_model['is_ui_init'] = True
 
 
