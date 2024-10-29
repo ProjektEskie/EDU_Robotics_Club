@@ -1,6 +1,4 @@
 import threading
-import time
-import socket
 import queue
 import json
 from nicegui import app, ui, native
@@ -9,7 +7,6 @@ import math
 import numpy as np
 from bleak import BleakScanner, BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
-from bleak.exc import BleakError
 import logging
 
 logger = logging.getLogger(__name__)
