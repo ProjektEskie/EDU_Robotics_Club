@@ -132,12 +132,15 @@ def backend_disconnect():
         
 def backend_send_msg():
     message = comm_text_input.value
+    comm_text_input.value = ''
     backend_enqueue_message(message)
         
-def backend_enqueue_message(message):
+def backend_enqueue_message(message, queue_on_empty=False):
     if glob_BLE_connected:
+        if queue_on_empty:
+            if (not iq.empty()):
+                return
         iq.put(message)
-        comm_text_input.value = ''
     
 def backend_set_car_name(e):
     glob_model['CAR_NAME'] = e.value
@@ -225,7 +228,8 @@ def backend_medium_update():
             if (glob_model['joystick'][0] and glob_model['joystick'][1]):
                 cmd_str = backend_joystick_move_cmd()
                 joystick_label.text = cmd_str
-                backend_enqueue_message(cmd_str)
+                
+                backend_enqueue_message(cmd_str, queue_on_empty=True)
 
 def backend_slow_update():
     if glob_model['is_init']:
