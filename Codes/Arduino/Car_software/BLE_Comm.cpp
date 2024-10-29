@@ -63,15 +63,16 @@ void BLE_Comm_update()
 {
   BLEDevice central = BLE.central();
   static uint32_t last_output_refresh_time = millis();
-  op_data.ble.rssi = 0;
+
   op_data.ble.is_connected = 0;
+
+  op_data.ble.rssi = BLE.rssi();
 
   if (central)
   {
     if (central.connected())
     {
       op_data.ble.is_connected = 1;
-      op_data.ble.rssi = BLE.rssi();
 
       if (op_data.has_new_telemetry)
       {
