@@ -21,7 +21,7 @@ tq = queue.SimpleQueue()
 DEFAULT_CAR_NAME = 'RClub_Car'
 DEFAULT_MAUAL_SPEED='180'
 
-VERSION_STR = '2.1'
+VERSION_STR = '2.2'
 
 TESTING_MODE = False
 
@@ -107,6 +107,7 @@ def backend_init():
         glob_model['CAR_NAME'] = DEFAULT_CAR_NAME
         glob_model['data'] = {}
         glob_model['BLE_Task'] = None
+        glob_model['ble_rssi'] = 0
 
 
         
@@ -198,6 +199,10 @@ def backend_update():
             
             glob_model['calibration_plot_data'].put(cal_plot_datapoint)
 
+            glob_model['ble_rssi'] = 100 - (float(glob_model['data']['ble_rssi']) * -1.0)
+            if (glob_model['ble_rssi'] == -127):
+                glob_model['ble_rssi'] = 0
+
 
 def backend_medium_update():
     if glob_model['is_init']:
@@ -217,7 +222,8 @@ def backend_slow_update():
             datapoint = glob_model['calibration_plot_data'].get()
             calibration_plot.options['series'][0]['data'] = (datapoint[1])
                 
-        backlog_plot.options['series'][0]['data'][0] = oq.qsize()
+
+        rssi_plot.options['series'][0]['data'][0] = glob_model['ble_rssi']
 
         if glob_BLE_connected == 0:
             is_disconnected_chip.set_visibility(True)
@@ -241,13 +247,13 @@ def backend_very_slow_update():
     
     # Testing only    
     if TESTING_MODE:
-        # backlog_plot.options['series'][0]['data'][0] = np.random.rand() * 200
+        # rssi_plot.options['series'][0]['data'][0] = np.random.rand() * 200
         calibration_test_data = np.random.rand(4)*3
         calibration_test_data = calibration_test_data.tolist()
         calibration_plot.options['series'][0]['data'] = calibration_test_data
     
     calibration_plot.update()
-    backlog_plot.update()
+    rssi_plot.update()
 
 
 
@@ -326,17 +332,17 @@ with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-colo
             calibration_plot.classes('w-10/12 h-2/12')
             
             
-            backlog_plot = ui.echart({
-                'xAxis': {'type': 'value', 'min': 0 , 'max': 10},
-                'yAxis': {'type': 'category', 'data': ['BL'], 'inverse': True,
+            rssi_plot = ui.echart({
+                'xAxis': {'type': 'value', 'min': 0 , 'max': 60},
+                'yAxis': {'type': 'category', 'data': [''], 'inverse': True,
                         'nameRotate': 90,},
                 'legend': {'textStyle': {'color': 'gray'}},
                 'series': [
-                    {'type': 'bar', 'name': 'Command Backlog', 'data': [0.1]},
+                    {'type': 'bar', 'name': 'Signal Strength', 'data': [0.1]},
                 ],
                 'grid': {'containLabel': True, 'left': 0},
                 })
-            backlog_plot.classes('w-10/12 h-2/12')
+            rssi_plot.classes('w-10/12 h-2/12')
         
 
         with ui.column().classes('w-full'):

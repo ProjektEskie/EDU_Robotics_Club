@@ -8,9 +8,7 @@
 
 #include <CmdParser.hpp>
 #include <ArduinoJson.h>
-#include "ArduinoGraphics.h"
 #include "Arduino_NineAxesMotion.h"
-#include "Arduino_LED_Matrix.h"
 #include <cppQueue.h>  
 
 #define OUTPUT_MESSAGE_QUEUE_CAPACITY 10
@@ -33,8 +31,6 @@ cppQueue _output_queue(BLE_IO_SERVICE_BUFFER_LEN, OUTPUT_MESSAGE_QUEUE_CAPACITY,
 
 CmdParser cmdParser;
 
-ArduinoLEDMatrix matrix;
-
 void setup() {
   //Initialize serial and wait for port to open:
   Serial.begin(115200);
@@ -48,10 +44,7 @@ void setup() {
   delay(1);
 
   // Start the IMU
-  IMU_Init();
-
-  // Start the LED matrix
-  matrix.begin();
+  // IMU_Init();
 
   // Setup the car
   CAR_init();
@@ -73,7 +66,7 @@ void loop() {
 
   op_data.time_now = millis();
 
-  IMU_update();
+  // IMU_update();
 
   CAR_update();
 
