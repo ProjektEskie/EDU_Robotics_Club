@@ -57,7 +57,7 @@ void setup() {
 
   // Initalized some numbers
   op_data.time_since_last_telemetry = 0;
-  op_data.average_cycle_time = 0;
+  op_data.n_cycles_since_last_telemetry = 0;
 
   Serial.println("Ready!");
 }
@@ -78,6 +78,8 @@ void loop() {
   BLE_Comm_update();
 
   cmd_parse();
+
+  op_data.n_cycles_since_last_telemetry++;
 }
 
 void cmd_parse()
@@ -191,6 +193,7 @@ void telemetry_generate()
   doc["status"] = op_data.status;
   doc["time_ms"] = op_data.time_now;
   doc["t_last"] = op_data.time_since_last_telemetry;
+  doc["n_cycles"] = op_data.n_cycles_since_last_telemetry;
   doc["ble_rssi"] = op_data.ble.rssi;
 
   JsonObject IMU = doc["IMU"].to<JsonObject>();
@@ -228,5 +231,6 @@ void telemetry_generate()
   op_data.time_since_last_telemetry = op_data.time_now - op_data.last_telemetry_time;
   op_data.last_telemetry_time = op_data.time_now;
   op_data.has_new_telemetry = 1;
+  op_data.n_cycles_since_last_telemetry = 0;
 
 }

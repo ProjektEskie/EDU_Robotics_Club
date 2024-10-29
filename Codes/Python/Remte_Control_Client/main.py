@@ -34,6 +34,8 @@ glob_model['joystick_car_speed'] = DEFAULT_MAUAL_SPEED
 glob_model['calibration_plot_data'] = queue.SimpleQueue()
 glob_model['telemetry_str_len'] = 0
 glob_model['last_telemetry_time'] = 0
+glob_model['cycles_in_telemetry'] = 0
+glob_model['mcu_times_since_telemetry'] = 0
 glob_init_semaphore = threading.Semaphore()
 glob_UI_disconnected = 0
 glob_BLE_connected = 0
@@ -211,6 +213,9 @@ def backend_update():
             if (glob_model['ble_rssi'] == -127):
                 glob_model['ble_rssi'] = 100
                 
+            glob_model['cycles_in_telemetry'] = float(glob_model['data']['n_cycles'])
+            glob_model['mcu_times_since_telemetry'] = float(glob_model['data']['t_last'])
+                
             
 
 
@@ -237,6 +242,15 @@ def backend_slow_update():
         rssi_bar.value = rssi_value
         
         telemetry_lengh_bar.value = round(glob_model['telemetry_str_len']/500, 2)
+        
+        if glob_model['cycles_in_telemetry'] != 0:
+            
+            cycle_time = glob_model['mcu_times_since_telemetry']/glob_model['cycles_in_telemetry']
+            cycle_time = round(cycle_time/100, 2)
+        else:
+            cycle_time = 0
+
+        cycle_time_bar.value = cycle_time
         
 
         if glob_BLE_connected == 0:
@@ -359,6 +373,9 @@ with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-colo
                 
                 ui.label("Telemetry Buffer")
                 telemetry_lengh_bar = ui.linear_progress()
+                
+                ui.label("Cycle time")
+                cycle_time_bar = ui.linear_progress()
                 
         with ui.tab_panel(raw):
             ui.separator()
