@@ -166,7 +166,7 @@ def backend_move_quick_reverse(e):
 def backend_joystick_move_cmd():
     left_speed = 0
     right_speed = 0
-    duration = 500
+    duration = 750
     magnitude = math.sqrt(glob_model['joystick'][0]**2 + glob_model['joystick'][1]**2)
     max_speed = float(glob_model['joystick_car_speed'])
     if (glob_model['joystick'][0] > 0):
