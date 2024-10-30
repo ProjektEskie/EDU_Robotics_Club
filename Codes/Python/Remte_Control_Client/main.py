@@ -211,16 +211,13 @@ def backend_update():
             ]
             
             glob_model['calibration_plot_data'].put(cal_plot_datapoint)
-
+            
             glob_model['ble_rssi'] = float(glob_model['data']['ble_rssi']) * -1.0
             if (glob_model['ble_rssi'] == -127):
                 glob_model['ble_rssi'] = 100
                 
             glob_model['cycles_in_telemetry'] = float(glob_model['data']['n_cycles'])
             glob_model['mcu_times_since_telemetry'] = float(glob_model['data']['t_last'])
-                
-            
-
 
 def backend_medium_update():
     if glob_model['is_init']:
@@ -240,10 +237,12 @@ def backend_slow_update():
         while not glob_model['calibration_plot_data'].empty():
             datapoint = glob_model['calibration_plot_data'].get()
             calibration_plot.options['series'][0]['data'] = (datapoint[1])
+            
                 
-
-        rssi_value = round((100 - glob_model['ble_rssi'])/60, 2)
-        rssi_bar.value = rssi_value
+        if (glob_model['ble_rssi'] != 100):
+            
+            rssi_value = round((100 - glob_model['ble_rssi'])/60, 2)
+            rssi_bar.value = rssi_value
         
         telemetry_lengh_bar.value = round(glob_model['telemetry_str_len']/500, 2)
         
