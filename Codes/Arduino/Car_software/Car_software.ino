@@ -216,7 +216,10 @@ void telemetry_generate()
   IMU_lin_accel["lin_accel_y"] = op_data.imu.linaccel_y;
   IMU_lin_accel["lin_accel_z"] = op_data.imu.linaccel_z;
 
-  JsonObject CAR_speeds = doc["CAR"]["speeds"].to<JsonObject>();
+  JsonObject CAR = doc["CAR"].to<JsonObject>();
+  CAR["mode"] = op_data.car.mode;
+
+  JsonObject CAR_speeds = CAR["speeds"].to<JsonObject>();
   CAR_speeds["left"] = op_data.car.left_speed;
   CAR_speeds["right"] = op_data.car.right_speed;
 
