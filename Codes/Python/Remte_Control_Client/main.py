@@ -118,6 +118,7 @@ def backend_init():
         glob_model['data'] = {}
         glob_model['BLE_Task'] = None
         glob_model['ble_rssi'] = 0
+        glob_model['_prev_txt_cmd_message'] = ''
 
 
         
@@ -132,8 +133,12 @@ def backend_disconnect():
         
 def backend_send_msg():
     message = comm_text_input.value
+    glob_model['_prev_txt_cmd_message'] = message
     comm_text_input.value = ''
     backend_enqueue_message(message)
+
+def backend_comm_text_prev_message():
+    comm_text_input.value = glob_model['_prev_txt_cmd_message']
         
 def backend_enqueue_message(message, queue_on_empty=False):
     if glob_BLE_connected:
@@ -399,7 +404,8 @@ with ui.card() as comm_window:
     comm_log.style('font-size: 75%;')
     comm_text_input = ui.input(label='Enter commands here:')
     comm_text_input.classes('w-full h-20')
-    comm_text_input.on('keydown.enter', backend_send_msg) 
+    comm_text_input.on('keydown.enter', backend_send_msg)
+    comm_text_input.on('keydown.up', backend_comm_text_prev_message)
     
 ui.separator()  
 
