@@ -61,5 +61,6 @@ void CAR_update();
 
 void CAR_API_car_m_move(int left_speed, int right_speed, uint32_t duration);
 void CAR_API_set_mode(uint8_t requested_mode);
+void CAR_API_set_heading(float requested_heading);
 
 #endif

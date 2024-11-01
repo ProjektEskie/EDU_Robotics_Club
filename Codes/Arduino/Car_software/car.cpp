@@ -87,7 +87,18 @@ void CAR_API_set_mode(uint8_t requested_mode)
   {
     helper_queue_messages("Error: car_set_mode, invalid mode");
   }
+}
 
+void CAR_API_set_heading(float requested_heading)
+{
+  if ((requested_heading >= 0.0) && (requested_heading < 360.0))
+  {
+    op_data.car.hk_data.target_heading = requested_heading;
+  }
+  else
+  {
+    helper_queue_messages("Error: car_set_heading, heading must be between 0 and 360");
+  }
 }
 
 void CAR_stop()

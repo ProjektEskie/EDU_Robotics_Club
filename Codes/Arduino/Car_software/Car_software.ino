@@ -159,7 +159,24 @@ void cmd_parse()
       helper_queue_messages("Info: car_set_mode [mode], where mode is defined in the car_mode enum");
       helper_queue_messages("Info: car_set_mode 0");
     }
-    
+  }
+  else if (strcmp("car_set_heading", cmdParser.getCommand()) == 0)
+  {
+    if (cmdParser.getParamCount() == 1)
+    {
+      float requested_heading = atof(cmdParser.getCmdParam(1));
+      CAR_API_set_heading(requested_heading);
+    }
+    else
+    {
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 1 arguement",
+              cmdParser.getCommand());
+      helper_queue_messages(_output_buffer);
+      helper_queue_messages("Info: car_set_heading (car, set heading) example usage:");
+      helper_queue_messages("Info: car_set_heading [heading], where heading is the direction the car is to face");
+      helper_queue_messages("Info: car_set_heading 90");
+    }
   }
   else if (strcmp("help", cmdParser.getCommand()) == 0)
   {
@@ -194,6 +211,9 @@ void callback_func_help()
   helper_clear_output_buffer();
   helper_queue_messages("Valid commands:");
   helper_queue_messages("help, displays the help message.");
+  helper_queue_messages("car_m_move, move the car by manualcommand.");
+  helper_queue_messages("car_set_mode, select which automatic mode of the car to use.");
+  helper_queue_messages("car_set_heading, Set the heading for heading_keeping mode.");
 }
 
 void telemetry_generate()
