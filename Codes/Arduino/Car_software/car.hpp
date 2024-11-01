@@ -27,6 +27,7 @@ typedef enum _car_mode
   CAR_MODE_MANUAL,
   CAR_MODE_HEADING_KEEP,
   CAR_MODE_WAYPOINT,
+  N_CAR_MODES
 } car_mode;
 
 typedef struct _car_manual_mode_data
@@ -37,17 +38,28 @@ typedef struct _car_manual_mode_data
   uint32_t _mm_start_time;
 } car_manual_mode_data;
 
+typedef struct _car_heading_keep_mode_data
+{
+  float target_heading;
+  float _heading_difference;
+} car_heading_keep_mode_data;
+
 typedef struct _car_data
 {
   int left_speed;
   int right_speed;
 
   car_mode mode;
+  bool is_new_mode;
 
   car_manual_mode_data mm_data;
+  car_heading_keep_mode_data hk_data;
 } car_data;
 
 void CAR_init();
 void CAR_update();
+
+void CAR_API_car_m_move(int left_speed, int right_speed, uint32_t duration);
+void CAR_API_set_mode(uint8_t requested_mode);
 
 #endif

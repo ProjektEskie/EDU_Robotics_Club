@@ -133,7 +133,7 @@ void cmd_parse()
       int left_speed = atoi(cmdParser.getCmdParam(1));
       int right_speed = atoi(cmdParser.getCmdParam(2));
       uint32_t duration = atol(cmdParser.getCmdParam(3));
-      callback_car_m_move(left_speed,
+      CAR_API_car_m_move(left_speed,
                           right_speed,
                           duration);
       helper_clear_output_buffer();
@@ -141,6 +141,25 @@ void cmd_parse()
               cmdParser.getCommand(), left_speed, right_speed);
       helper_queue_messages(_output_buffer);
     }
+  }
+  else if (strcmp("car_set_mode", cmdParser.getCommand()) == 0)
+  {
+    if (cmdParser.getParamCount() == 1)
+    {
+      uint8_t requested_mode = (uint8_t)atoi(cmdParser.getCmdParam(1));
+      CAR_API_set_mode(requested_mode);
+    }
+    else
+    {
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 1 arguement",
+              cmdParser.getCommand());
+      helper_queue_messages(_output_buffer);
+      helper_queue_messages("Info: car_set_mode (car, set mode) example usage:");
+      helper_queue_messages("Info: car_set_mode [mode], where mode is defined in the car_mode enum");
+      helper_queue_messages("Info: car_set_mode 0");
+    }
+    
   }
   else if (strcmp("help", cmdParser.getCommand()) == 0)
   {
@@ -175,15 +194,6 @@ void callback_func_help()
   helper_clear_output_buffer();
   helper_queue_messages("Valid commands:");
   helper_queue_messages("help, displays the help message.");
-}
-
-void callback_car_m_move(int left_speed, int right_speed, uint32_t duration)
-{
-  op_data.car.mode = CAR_MODE_MANUAL;
-  op_data.car.mm_data.mm_left_speed = left_speed;
-  op_data.car.mm_data.mm_right_speed = right_speed;
-  op_data.car.mm_data.mm_duration = duration;
-  op_data.car.mm_data._mm_start_time = op_data.time_now;
 }
 
 void telemetry_generate()

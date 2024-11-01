@@ -29,26 +29,65 @@ void CAR_update()
 
   if (op_data.car.mode == CAR_MODE_IDLE)
   {
+      if (op_data.car.is_new_mode)
+      {
+        op_data.car.is_new_mode = false;
+      }
       op_data.car.left_speed = 0;
       op_data.car.right_speed = 0;
   }
   else if (op_data.car.mode == CAR_MODE_MANUAL)
   {
-    op_data.car.left_speed = op_data.car.mm_data.mm_left_speed;
-    op_data.car.right_speed = op_data.car.mm_data.mm_right_speed;
+      if (op_data.car.is_new_mode)
+      {
+        op_data.car.is_new_mode = false;
+        op_data.car.left_speed = op_data.car.mm_data.mm_left_speed;
+        op_data.car.right_speed = op_data.car.mm_data.mm_right_speed;
+      }
+
     if ((op_data.time_now - op_data.car.mm_data._mm_start_time) > op_data.car.mm_data.mm_duration)
     {
-      op_data.car.mode = CAR_MODE_IDLE;
+      CAR_API_set_mode(CAR_MODE_IDLE);
       op_data.car.left_speed = 0;
       op_data.car.right_speed = 0;
       helper_queue_messages("Info: manual move complete");
     }
+  }
+  else if (op_data.car.mode == CAR_MODE_HEADING_KEEP)
+  {
+      if (op_data.car.is_new_mode)
+      {
+        op_data.car.is_new_mode = false;
+      }
   }
   else
   {
   }
 
   CAR_commit_speed();
+}
+
+void CAR_API_car_m_move(int left_speed, int right_speed, uint32_t duration)
+{
+  CAR_API_set_mode(CAR_MODE_MANUAL);
+  op_data.car.mm_data.mm_left_speed = left_speed;
+  op_data.car.mm_data.mm_right_speed = right_speed;
+  op_data.car.mm_data.mm_duration = duration;
+  op_data.car.mm_data._mm_start_time = op_data.time_now;
+}
+
+void CAR_API_set_mode(uint8_t requested_mode)
+{
+  if (requested_mode < N_CAR_MODES)
+  {
+    op_data.car.mode = (car_mode)requested_mode;
+    op_data.car.is_new_mode = true;
+  }
+  else
+  {
+    helper_queue_messages("Error: car_set_mode, invalid mode");
+  }
+
 }
 
 void CAR_stop()
