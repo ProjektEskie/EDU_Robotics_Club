@@ -47,7 +47,7 @@ void CAR_update()
 
     if ((op_data.time_now - op_data.car.mm_data._mm_start_time) > op_data.car.mm_data.mm_duration)
     {
-      CAR_API_set_mode(CAR_MODE_IDLE);
+      CAR_API_set_mode(op_data.car._prev_mode);
       op_data.car.left_speed = 0;
       op_data.car.right_speed = 0;
       helper_queue_messages("Info: manual move complete");
@@ -80,8 +80,13 @@ void CAR_API_set_mode(uint8_t requested_mode)
 {
   if (requested_mode < N_CAR_MODES)
   {
-    op_data.car.mode = (car_mode)requested_mode;
-    op_data.car.is_new_mode = true;
+    car_mode req_mode = (car_mode)requested_mode;
+    if (req_mode != op_data.car.mode)
+    {
+      op_data.car._prev_mode = op_data.car.mode;
+      op_data.car.mode = (car_mode)requested_mode;
+      op_data.car.is_new_mode = true;
+    }
   }
   else
   {

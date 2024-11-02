@@ -50,6 +50,7 @@ typedef struct _car_data
   int right_speed;
 
   car_mode mode;
+  car_mode _prev_mode;
   bool is_new_mode;
 
   car_manual_mode_data mm_data;
