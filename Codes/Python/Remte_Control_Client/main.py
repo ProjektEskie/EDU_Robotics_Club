@@ -29,6 +29,7 @@ glob_model['is_ui_init'] = False
 glob_model['is_connected_chip'] = None
 glob_model['is_disconnected_chip'] = None
 glob_model['joystick'] = [0,0,0]
+glob_model['heading_joystic_angle'] = 0
 glob_model['joystick_request_speed'] = [0,0]
 glob_model['joystick_car_speed'] = DEFAULT_MAUAL_SPEED
 glob_model['calibration_plot_data'] = queue.SimpleQueue()
@@ -119,7 +120,7 @@ def backend_init():
         glob_model['BLE_Task'] = None
         glob_model['ble_rssi'] = 0
         glob_model['_prev_txt_cmd_message'] = ''
-
+        glob_model['car_state'] = 0
 
         
 def backend_connect():
@@ -163,7 +164,25 @@ def backend_joystick_end():
     cmd_str = backend_joystick_move_cmd()
     backend_enqueue_message(cmd_str)
     glob_model['joystick']=[0,0,0]
-    
+
+def backend_car_direction_mode_sw_change():
+    if car_direction_mode_sw.value:
+        backend_enqueue_message('car_set_mode 2')
+    else:
+        backend_enqueue_message('car_set_mode 0')
+        car_direction_label.text = 'Car not in heading mode'
+
+def backend_car_direction_joystick_update(e):
+    if car_direction_mode_sw.value:
+        glob_model['heading_joystic_angle'] = round(math.atan2(e.y,e.x)/math.pi*180, 2)
+        car_direction_label.text = 'heading: {} degrees'.format( glob_model['heading_joystic_angle'])
+
+def backend_car_direction_joystick_set():
+    if car_direction_mode_sw.value:
+        angle = glob_model['heading_joystic_angle']
+        backend_enqueue_message('car_set_heading {}'.format(angle))
+        
+
 def backend_move_quick_reverse(e):
     cmd_str = 'car_m_move {} {} {}'.format(-200, -200, 750)
     backend_enqueue_message(cmd_str)
@@ -224,6 +243,8 @@ def backend_update():
             glob_model['cycles_in_telemetry'] = float(glob_model['data']['n_cycles'])
             glob_model['mcu_times_since_telemetry'] = float(glob_model['data']['t_last'])
 
+            glob_model['car_state'] = int(glob_model['data']['CAR']['mode'])
+
 def backend_medium_update():
     if glob_model['is_init']:
         if glob_model['joystick'][2] == 1:
@@ -232,6 +253,7 @@ def backend_medium_update():
                 joystick_label.text = cmd_str
                 
                 backend_enqueue_message(cmd_str, queue_on_empty=True)
+
 
 def backend_slow_update():
     if glob_model['is_init']:
@@ -435,7 +457,14 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
         placeholder_card.tight()
         placeholder_card.classes('w-11/12')
         with ui.card_section():
-            ui.label("Placeolder")
+            car_direction_mode_sw = ui.switch('Heading Control Mode',
+            on_change=backend_car_direction_mode_sw_change)
+        joystick_direction = ui.joystick(color='green', size=50,
+                                            on_move=backend_car_direction_joystick_update,
+                                            on_end=backend_car_direction_joystick_set)
+        joystick_direction.classes('w-full h-full')
+        with ui.card_section():
+            car_direction_label = ui.label('Car not in heading mode')
 
 
 glob_model['is_ui_init'] = True
