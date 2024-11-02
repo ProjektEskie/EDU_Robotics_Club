@@ -249,6 +249,8 @@ void telemetry_generate()
   JsonObject CAR = doc["CAR"].to<JsonObject>();
   CAR["mode"] = op_data.car.mode;
 
+  CAR["tgt_heading"] = op_data.car.hk_data.target_heading;
+  
   JsonObject CAR_speeds = CAR["speeds"].to<JsonObject>();
   CAR_speeds["left"] = op_data.car.left_speed;
   CAR_speeds["right"] = op_data.car.right_speed;
