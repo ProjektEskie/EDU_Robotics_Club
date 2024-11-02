@@ -174,7 +174,8 @@ def backend_car_direction_mode_sw_change():
 
 def backend_car_direction_joystick_update(e):
     if car_direction_mode_sw.value:
-        glob_model['heading_joystic_angle'] = round(math.atan2(e.y,e.x)/math.pi*180, 2)
+        angle = 360 - (math.atan2(e.x,e.y * -1)/math.pi*180 + 180)
+        glob_model['heading_joystic_angle'] = round(angle, 2)
         car_direction_label.text = 'heading: {} degrees'.format( glob_model['heading_joystic_angle'])
 
 def backend_car_direction_joystick_set():
