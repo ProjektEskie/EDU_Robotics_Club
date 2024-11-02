@@ -2,6 +2,19 @@
 #include "definitions.hpp"
 #include <cppQueue.h>  
 
+// Calcualte the angle between two points on the compass
+// Returns: difference in angles in degrees, positve is in the clockwise direction
+// Rounded to 2 decimal places
+float helper_angle_diff(float current_angle, float target_angle)
+{
+  int angle_diff = 0;
+
+  angle_diff = int((current_angle - target_angle) * 100);
+  angle_diff = (angle_diff + 18000 + 36000) % 36000 - 18000;
+
+  return float(angle_diff/100.0);
+}
+
 void helper_clear_input_buffer()
 {
   extern char _input_buffer[];
