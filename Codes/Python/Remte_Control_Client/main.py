@@ -19,7 +19,7 @@ tq = queue.SimpleQueue()
 DEFAULT_CAR_NAME = 'RClub_Car'
 DEFAULT_MAUAL_SPEED='180'
 
-VERSION_STR = '2.3'
+VERSION_STR = '2.4'
 
 TESTING_MODE = False
 
@@ -272,7 +272,7 @@ def backend_slow_update():
             rssi_value = round((100 - glob_model['ble_rssi'])/60, 2)
             rssi_bar.value = rssi_value
         
-        telemetry_lengh_bar.value = round(glob_model['telemetry_str_len']/500, 2)
+        telemetry_lengh_bar.value = round(glob_model['telemetry_str_len']/600, 2)
         
         if glob_model['cycles_in_telemetry'] != 0:
             
