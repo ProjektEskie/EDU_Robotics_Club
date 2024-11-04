@@ -44,7 +44,7 @@ void setup() {
   delay(1);
 
   // Start the IMU
-  // IMU_Init();
+  IMU_Init();
 
   // Setup the car
   CAR_init();
@@ -67,7 +67,7 @@ void loop() {
 
   op_data.time_now = millis();
 
-  // IMU_update();
+  IMU_update();
 
   CAR_update();
 
