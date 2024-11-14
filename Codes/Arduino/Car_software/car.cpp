@@ -59,6 +59,25 @@ void CAR_update()
       {
         op_data.car.is_new_mode = false;
       }
+
+      float _dff = helper_angle_diff(op_data.imu.euler_heading, op_data.car.hk_data.target_heading);
+
+
+      if (_dff > 5)
+      {
+        op_data.car.left_speed = -200;
+        op_data.car.right_speed = 200;
+      }
+      else if (_dff < -5)
+      {
+        op_data.car.left_speed = 200;
+        op_data.car.right_speed = -200;
+      }
+      else
+      {
+        CAR_stop();
+      }
+
   }
   else
   {

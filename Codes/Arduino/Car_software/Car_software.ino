@@ -13,9 +13,13 @@
 
 #define OUTPUT_MESSAGE_QUEUE_CAPACITY 10
 
+#undef ARDUINOJSON_SLOT_ID_SIZE
 #define ARDUINOJSON_SLOT_ID_SIZE 1
+#undef ARDUINOJSON_STRING_LENGTH_SIZE
 #define ARDUINOJSON_STRING_LENGTH_SIZE 1
+#undef ARDUINOJSON_USE_DOUBLE
 #define ARDUINOJSON_USE_DOUBLE 0
+#undef ARDUINOJSON_USE_LONG_LONG
 #define ARDUINOJSON_USE_LONG_LONG 0
 
 
@@ -44,7 +48,7 @@ void setup() {
   delay(1);
 
   // Start the IMU
-  // IMU_Init();
+  IMU_Init();
 
   // Setup the car
   CAR_init();
@@ -67,7 +71,7 @@ void loop() {
 
   op_data.time_now = millis();
 
-  // IMU_update();
+  IMU_update();
 
   CAR_update();
 
