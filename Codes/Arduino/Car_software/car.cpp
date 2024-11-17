@@ -2,6 +2,7 @@
 #include "definitions.hpp"
 #include "helpers.hpp"
 
+bool CAR_turn_to_heading(float target_heading);
 void CAR_stop();
 void CAR_commit_speed();
 
@@ -55,28 +56,47 @@ void CAR_update()
   }
   else if (op_data.car.mode == CAR_MODE_HEADING_KEEP)
   {
-      if (op_data.car.is_new_mode)
-      {
-        op_data.car.is_new_mode = false;
-      }
+    if (op_data.car.is_new_mode)
+    {
+      op_data.car.is_new_mode = false;
+    }
 
-      float _dff = helper_angle_diff(op_data.imu.euler_heading, op_data.car.hk_data.target_heading);
+    CAR_turn_to_heading(op_data.car.hk_data.target_heading);
+  }
+  else if (op_data.car.mode == CAR_MODE_PNG)
+  {
+    if (op_data.car.is_new_mode)
+    {
+      op_data.car.png_data.step = CAR_PNG_GOTO_HEADING;
+      op_data.car.is_new_mode = false;
+    }
 
-
-      if (_dff > 5)
+    if (op_data.car.png_data.step == CAR_PNG_GOTO_HEADING)
+    {
+      if (CAR_turn_to_heading(op_data.car.png_data.target_heading))
       {
-        op_data.car.left_speed = -200;
-        op_data.car.right_speed = 200;
+        op_data.car.png_data.step = CAR_PNG_LINEAR_TRAVEL;
+        op_data.car.png_data.straight_line_start_time = op_data.time_now;
+        op_data.car.left_speed = op_data.car.png_data.straight_line_speed;
+        op_data.car.right_speed = op_data.car.png_data.straight_line_speed;
       }
-      else if (_dff < -5)
+    }
+    else if (op_data.car.png_data.step == CAR_PNG_LINEAR_TRAVEL)
+    {
+      if ((op_data.time_now - op_data.car.png_data.straight_line_start_time) > op_data.car.png_data.straight_line_duration)
       {
-        op_data.car.left_speed = 200;
-        op_data.car.right_speed = -200;
+        op_data.car.png_data.step = CAR_PNG_DONE;
       }
-      else
-      {
-        CAR_stop();
-      }
+    }
+    else if (op_data.car.png_data.step == CAR_PNG_DONE)
+    {
+      CAR_stop();
+    }
+    else
+    {
+      CAR_API_set_mode(CAR_MODE_IDLE);
+      helper_queue_messages("CAR, ERROR: unexpected step in PNG mode");
+    }
 
   }
   else
@@ -123,6 +143,31 @@ void CAR_API_set_heading(float requested_heading)
   {
     helper_queue_messages("Error: car_set_heading, heading must be between 0 and 360");
   }
+}
+
+// Generate the speed the car needs to head turn to the target heading
+// Commit_speed() still need to be called to move the car
+// returns true when the car is facing the target heading
+bool CAR_turn_to_heading(float target_heading)
+{
+  bool is_done = false;
+  float _dff = helper_angle_diff(op_data.imu.euler_heading, target_heading);
+  if (_dff > 5)
+  {
+    op_data.car.left_speed = -200;
+    op_data.car.right_speed = 200;
+  }
+  else if (_dff < -5)
+  {
+    op_data.car.left_speed = 200;
+    op_data.car.right_speed = -200;
+  }
+  else
+  {
+    CAR_stop();
+    is_done = true;
+  }
+  return is_done;
 }
 
 void CAR_stop()
