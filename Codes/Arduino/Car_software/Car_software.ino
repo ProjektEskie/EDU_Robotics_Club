@@ -162,6 +162,7 @@ void cmd_parse()
       helper_queue_messages("Info: car_set_mode (car, set mode) example usage:");
       helper_queue_messages("Info: car_set_mode [mode], where mode is defined in the car_mode enum");
       helper_queue_messages("Info: car_set_mode 0");
+      helper_queue_messages("Info: car_set_mode known modes: 0 - Idle, 1 - manual, 2 - heading keep, 3 - point and go");
     }
   }
   else if (strcmp("car_set_heading", cmdParser.getCommand()) == 0)
@@ -181,6 +182,35 @@ void cmd_parse()
       helper_queue_messages("Info: car_set_heading [heading], where heading is the direction the car is to face");
       helper_queue_messages("Info: car_set_heading 90");
     }
+  }
+  else if (strcmp("car_set_png_param", cmdParser.getCommand()) == 0)
+  {
+    if (cmdParser.getParamCount() == 3)
+    {
+
+      float target_heading;
+      int speed;
+      uint32_t duration;
+
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "car_set_png_param, you've entered parameters of '%s'",
+              cmdParser.getCmdParam(1),
+              cmdParser.getCmdParam(2),
+              cmdParser.getCmdParam(3));
+      helper_queue_messages(_output_buffer);
+
+      target_heading = atof(cmdParser.getCmdParam(1));
+      speed = atoi(cmdParser.getCmdParam(2));
+      duration = atol(cmdParser.getCmdParam(3));
+    }
+    else
+    {
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 3 arguement",
+              cmdParser.getCommand());
+      helper_queue_messages(_output_buffer);
+    }
+
   }
   else if (strcmp("help", cmdParser.getCommand()) == 0)
   {
@@ -218,6 +248,7 @@ void callback_func_help()
   helper_queue_messages("car_m_move, move the car by manualcommand.");
   helper_queue_messages("car_set_mode, select which automatic mode of the car to use.");
   helper_queue_messages("car_set_heading, Set the heading for heading_keeping mode.");
+  helper_queue_messages("car_set_png_param, Set the parameters for the point-and-go mode.");
 }
 
 void telemetry_generate()

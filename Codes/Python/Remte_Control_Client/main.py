@@ -19,7 +19,7 @@ iq = queue.SimpleQueue()
 oq = queue.SimpleQueue()
 tq = queue.SimpleQueue()
 
-DEFAULT_CAR_NAME = 'RClub_Car'
+DEFAULT_CAR_NAME = 'MM_Car'
 DEFAULT_MAUAL_SPEED='180'
 
 VERSION_STR = '2.4'
