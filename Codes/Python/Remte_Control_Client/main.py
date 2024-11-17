@@ -1,3 +1,6 @@
+# Requires the following python libraries:
+# numpy nicegui pywebview bleak
+
 import threading
 import queue
 import json
