@@ -193,7 +193,7 @@ void cmd_parse()
       uint32_t duration;
 
       helper_clear_output_buffer();
-      sprintf(_output_buffer, "car_set_png_param, you've entered parameters of '%s'",
+      sprintf(_output_buffer, "car_set_png_param, you've entered parameters of '%s' '%s' '%s'",
               cmdParser.getCmdParam(1),
               cmdParser.getCmdParam(2),
               cmdParser.getCmdParam(3));

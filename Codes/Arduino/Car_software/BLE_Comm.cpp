@@ -34,6 +34,7 @@ void BLE_Comm_init()
   }
 
   BLE.setLocalName(BLE_CAR_NAME);
+  BLE.setDeviceName(BLE_CAR_NAME);
   
 
   telemetry_characteristic.addDescriptor(telemetry_descriptor);
