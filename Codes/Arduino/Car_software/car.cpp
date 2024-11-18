@@ -152,15 +152,19 @@ bool CAR_turn_to_heading(float target_heading)
 {
   bool is_done = false;
   float _dff = helper_angle_diff(op_data.imu.euler_heading, target_heading);
-  if (_dff > 5)
+
+  int turn_speed = 220;
+  int angle_tolerance = 2.5;
+
+  if (_dff > angle_tolerance)
   {
-    op_data.car.left_speed = -200;
-    op_data.car.right_speed = 200;
+    op_data.car.left_speed = -turn_speed;
+    op_data.car.right_speed = turn_speed;
   }
-  else if (_dff < -5)
+  else if (_dff < -angle_tolerance)
   {
-    op_data.car.left_speed = 200;
-    op_data.car.right_speed = -200;
+    op_data.car.left_speed = turn_speed;
+    op_data.car.right_speed = -turn_speed;
   }
   else
   {

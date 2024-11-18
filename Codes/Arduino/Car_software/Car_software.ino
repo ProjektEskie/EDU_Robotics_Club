@@ -206,7 +206,7 @@ void cmd_parse()
     else
     {
       helper_clear_output_buffer();
-      sprintf(_output_buffer, "Error, '%s' command accepts exactly 3 arguement",
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 3 arguements, heading, straight line speed and duration",
               cmdParser.getCommand());
       helper_queue_messages(_output_buffer);
     }
