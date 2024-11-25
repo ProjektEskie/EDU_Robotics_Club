@@ -202,6 +202,8 @@ void cmd_parse()
       target_heading = atof(cmdParser.getCmdParam(1));
       speed = atoi(cmdParser.getCmdParam(2));
       duration = atol(cmdParser.getCmdParam(3));
+
+      CAR_API_set_PNG_settings( target_heading, speed, duration);
     }
     else
     {

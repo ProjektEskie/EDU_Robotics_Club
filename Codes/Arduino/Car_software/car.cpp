@@ -145,6 +145,13 @@ void CAR_API_set_heading(float requested_heading)
   }
 }
 
+void CAR_API_set_PNG_settings(float target_heading, int line_speed, uint32_t line_duration)
+{
+  op_data.car.png_data.target_heading = target_heading;
+  op_data.car.png_data.straight_line_speed = line_speed;
+  op_data.car.png_data.straight_line_duration = line_duration;
+}
+
 // Generate the speed the car needs to head turn to the target heading
 // Commit_speed() still need to be called to move the car
 // returns true when the car is facing the target heading
