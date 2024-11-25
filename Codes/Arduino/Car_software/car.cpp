@@ -154,7 +154,7 @@ bool CAR_turn_to_heading(float target_heading)
   float _dff = helper_angle_diff(op_data.imu.euler_heading, target_heading);
 
   int turn_speed = 220;
-  int angle_tolerance = 2.5;
+  int angle_tolerance = 5;
 
   if (_dff > angle_tolerance)
   {
