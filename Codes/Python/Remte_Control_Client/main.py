@@ -19,10 +19,10 @@ iq = queue.SimpleQueue()
 oq = queue.SimpleQueue()
 tq = queue.SimpleQueue()
 
-DEFAULT_CAR_NAME = 'MM_Car'
+DEFAULT_CAR_NAME = 'RClub_Car'
 DEFAULT_MAUAL_SPEED='180'
 
-VERSION_STR = '2.4'
+VERSION_STR = '2.5'
 
 TESTING_MODE = False
 
@@ -369,7 +369,9 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
         is_connecting_chip.set_visibility(False)
         
 
-with ui.right_drawer(top_corner=True, bottom_corner=True).style('background-color: #d7e3f4'):
+with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
+    right_hand_drawer.style('background-color: #d7e3f4')
+    right_hand_drawer.props('width=500')
     ui.markdown('##Robot Status')
     
     with ui.tabs().classes('w-full') as tabs:
