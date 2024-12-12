@@ -6,7 +6,7 @@
 #include "IMU.hpp"
 #include "BLE_Comm.hpp"
 
-#define BLE_CAR_NAME "MM_Car"
+#define BLE_CAR_NAME "RClub_Car"
 
 #define JSON_BUFFER_LEN 600
 #define BLE_IO_SERVICE_BUFFER_LEN 240
