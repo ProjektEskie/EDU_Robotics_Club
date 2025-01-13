@@ -306,7 +306,7 @@ void telemetry_generate()
   CAR["mode"] = op_data.car.mode;
 
   CAR["tgt_heading"] = op_data.car.hk_data.target_heading;
-  CAR['servo_angle'] = op_data.car.servo_angle;
+  CAR["servo_angle"] = op_data.car.servo_angle;
   
   JsonObject CAR_speeds = CAR["speeds"].to<JsonObject>();
   CAR_speeds["left"] = op_data.car.left_speed;

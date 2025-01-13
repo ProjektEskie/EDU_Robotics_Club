@@ -24,16 +24,16 @@ void CAR_init()
 
   op_data.car.mode = CAR_MODE_IDLE;
   op_data.car.servo_angle = 0;
-  opdata.car.servo_angle_offset = 0;
+  op_data.car.servo_angle_offset = 0;
 
   op_data.car.front_servo.attach(SERVO_PIN);
-  op_data.car.front_servo.write(op_data.car.servo_angle + opdata.car.servo_angle_offset + 90);
+  op_data.car.front_servo.write(op_data.car.servo_angle + op_data.car.servo_angle_offset + 90);
 }
 
 void CAR_update()
 {
 
-  op_data.car.front_servo.write(op_data.car.servo_angle + opdata.car.servo_angle_offset + 90);
+  op_data.car.front_servo.write(op_data.car.servo_angle + op_data.car.servo_angle_offset + 90);
 
   if (op_data.car.mode == CAR_MODE_IDLE)
   {
