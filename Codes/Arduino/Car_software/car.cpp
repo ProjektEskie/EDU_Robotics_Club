@@ -164,18 +164,20 @@ bool CAR_turn_to_heading(float target_heading)
   float abs_diff;
   abs_diff = abs(_dff);
 
-  if (abs_diff > 80)
-  {
-    turn_speed = 255;
-  }
-  else if ((abs_diff > 25) and (abs_diff <= 80))
-  {
-    turn_speed = 180;
-  }
-  else
-  {
-    turn_speed = 110;
-  }
+  // if (abs_diff > 80)
+  // {
+  //   turn_speed = 255;
+  // }
+  // else if ((abs_diff > 25) and (abs_diff <= 80))
+  // {
+  //   turn_speed = 180;
+  // }
+  // else
+  // {
+  //   turn_speed = 110;
+  // }
+
+  turn_speed = (int)((abs_diff/180.0) * 165.0 + 90.0 - 1.0);
 
   int angle_tolerance = 3;
 
