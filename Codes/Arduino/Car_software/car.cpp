@@ -23,10 +23,17 @@ void CAR_init()
   #endif
 
   op_data.car.mode = CAR_MODE_IDLE;
+  op_data.car.servo_angle = 0;
+  opdata.car.servo_angle_offset = 0;
+
+  op_data.car.front_servo.attach(SERVO_PIN);
+  op_data.car.front_servo.write(op_data.car.servo_angle + opdata.car.servo_angle_offset + 90);
 }
 
 void CAR_update()
 {
+
+  op_data.car.front_servo.write(op_data.car.servo_angle + opdata.car.servo_angle_offset + 90);
 
   if (op_data.car.mode == CAR_MODE_IDLE)
   {
@@ -150,6 +157,11 @@ void CAR_API_set_PNG_settings(float target_heading, int line_speed, uint32_t lin
   op_data.car.png_data.target_heading = target_heading;
   op_data.car.png_data.straight_line_speed = line_speed;
   op_data.car.png_data.straight_line_duration = line_duration;
+}
+
+void CAR_API_set_Servo_angle(int angle)
+{
+  op_data.car.servo_angle = constrain(angle, -90, 90);
 }
 
 // Generate the speed the car needs to head turn to the target heading

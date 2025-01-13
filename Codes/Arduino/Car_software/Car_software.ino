@@ -218,6 +218,24 @@ void cmd_parse()
   {
     callback_func_help();
   }
+  else if (strcmp("car_set_servo", cmdParser.getCommand()) == 0)
+  {
+    if (cmdParser.getParamCount() == 1)
+    {
+      int angle = atoi(cmdParser.getCmdParam(1));
+      CAR_API_set_Servo_angle(angle);
+    }
+    else
+    {
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 1 arguement",
+              cmdParser.getCommand());
+      helper_queue_messages(_output_buffer);
+      helper_queue_messages("Info: car_set_servo (car, set servo angle) example usage:");
+      helper_queue_messages("Info: car_set_servo [angle], where angle is the angle to set the servo to");
+      helper_queue_messages("Info: car_set_servo 0");
+    }
+  }
   else
   {
     // Command not found
@@ -251,6 +269,7 @@ void callback_func_help()
   helper_queue_messages("car_set_mode, select which automatic mode of the car to use.");
   helper_queue_messages("car_set_heading, Set the heading for heading_keeping mode.");
   helper_queue_messages("car_set_png_param, Set the parameters for the point-and-go mode.");
+  helper_queue_messages("car_set_servo, Set the angle of the servo.");
 }
 
 void telemetry_generate()
@@ -278,15 +297,16 @@ void telemetry_generate()
   IMU_euler_angles["pitch"] = op_data.imu.euler_pitch;
   IMU_euler_angles["roll"] = op_data.imu.euler_roll;
 
-  JsonObject IMU_lin_accel = IMU["lin_accel"].to<JsonObject>();
-  IMU_lin_accel["lin_accel_x"] = op_data.imu.linaccel_x;
-  IMU_lin_accel["lin_accel_y"] = op_data.imu.linaccel_y;
-  IMU_lin_accel["lin_accel_z"] = op_data.imu.linaccel_z;
+  // JsonObject IMU_lin_accel = IMU["lin_accel"].to<JsonObject>();
+  // IMU_lin_accel["lin_accel_x"] = op_data.imu.linaccel_x;
+  // IMU_lin_accel["lin_accel_y"] = op_data.imu.linaccel_y;
+  // IMU_lin_accel["lin_accel_z"] = op_data.imu.linaccel_z;
 
   JsonObject CAR = doc["CAR"].to<JsonObject>();
   CAR["mode"] = op_data.car.mode;
 
   CAR["tgt_heading"] = op_data.car.hk_data.target_heading;
+  CAR['servo_angle'] = op_data.car.servo_angle;
   
   JsonObject CAR_speeds = CAR["speeds"].to<JsonObject>();
   CAR_speeds["left"] = op_data.car.left_speed;
