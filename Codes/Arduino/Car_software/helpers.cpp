@@ -1,3 +1,4 @@
+#include <cstdarg>
 #include "helpers.hpp"
 #include "definitions.hpp"
 #include <cppQueue.h>  
@@ -58,4 +59,18 @@ void helper_queue_messages(char* message)
     Serial.println(message);
     Serial.println(strlen(message));
   }
+}
+
+void helper_queue_formatted_message(const char *format, ...)
+{
+  extern char _output_buffer[];
+  extern cppQueue _output_queue;
+  va_list args;
+  helper_clear_output_buffer();
+  va_start(args, format);
+  vsnprintf(_output_buffer, CMD_OUTPUT_BUFFER_LEN, format, args);
+  va_end(args);
+
+  _output_buffer[CMD_OUTPUT_BUFFER_LEN - 1] = '\0';
+  _output_queue.push(_output_buffer);
 }

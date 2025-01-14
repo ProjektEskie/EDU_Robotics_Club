@@ -20,9 +20,8 @@ oq = queue.SimpleQueue()
 tq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
-DEFAULT_MAUAL_SPEED='180'
 
-VERSION_STR = '2.5'
+VERSION_STR = '2.6'
 
 TESTING_MODE = False
 
@@ -34,8 +33,6 @@ glob_model['is_disconnected_chip'] = None
 glob_model['joystick'] = [0,0,0]
 glob_model['heading_joystic_angle'] = 0
 glob_model['joystick_request_speed'] = [0,0]
-glob_model['joystick_car_speed'] = DEFAULT_MAUAL_SPEED
-glob_model['calibration_plot_data'] = queue.SimpleQueue()
 glob_model['telemetry_str_len'] = 0
 glob_model['last_telemetry_time'] = 0
 glob_model['cycles_in_telemetry'] = 0
@@ -98,7 +95,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue):
                 if ((time.monotonic() - glob_model['last_telemetry_time']) > 2):
                     print(time.monotonic, glob_model['last_telemetry_time'])
                     print("Telemetry lost, disconnecting")
-                    break
+                    raise DeviceNotFoundError("Connection lost with: {}".format(target_name))
 
                 if (not input_queue.empty()):
                     message = input_queue.get()
@@ -108,10 +105,12 @@ async def ble_task(input_queue, output_queue, telemetry_Queue):
                     await client.write_gatt_char('99924646-b9d6-4a51-bda9-ef084d793abf', message)
 
                 await asyncio.sleep(0.01)
+                
+            
 
     else:
         glob_BLE_connected = 0
-        raise DeviceNotFoundError
+        raise DeviceNotFoundError("No device found with name: {}".format(target_name))
 
 
 
@@ -153,20 +152,6 @@ def backend_enqueue_message(message, queue_on_empty=False):
     
 def backend_set_car_name(e):
     glob_model['CAR_NAME'] = e.value
-    
-def backend_joystick_max_speed(e):
-    glob_model['joystick_car_speed'] = e.value
-    
-def backend_joystick_compute(e):
-    glob_model['joystick'] = [e.x, e.y, 1]
-
-
-def backend_joystick_end():
-    glob_model['joystick']=[0,0,1]
-    joystick_label.text = ''
-    cmd_str = backend_joystick_move_cmd()
-    backend_enqueue_message(cmd_str)
-    glob_model['joystick']=[0,0,0]
 
 def backend_car_direction_mode_sw_change():
     if car_direction_mode_sw.value:
@@ -191,21 +176,14 @@ def backend_move_quick_reverse(e):
     cmd_str = 'car_m_move {} {} {}'.format(-200, -200, 750)
     backend_enqueue_message(cmd_str)
     
-def backend_joystick_move_cmd():
-    left_speed = 0
-    right_speed = 0
-    duration = 750
-    magnitude = math.sqrt(glob_model['joystick'][0]**2 + glob_model['joystick'][1]**2)
-    max_speed = float(glob_model['joystick_car_speed'])
-    if (glob_model['joystick'][0] > 0):
-        left_speed = int(max_speed * magnitude)
-        right_speed = int(max_speed * magnitude * glob_model['joystick'][1])
-    else:
-        left_speed = int(max_speed * magnitude * glob_model['joystick'][1])
-        right_speed = int(max_speed * magnitude)
-      
+def backend_manual_move_click():
+    left_speed = manual_control_left_slider.value
+    right_speed = manual_control_right_slider.value
+    duration = manual_control_duration_slider.value
+
     cmd_str = 'car_m_move {} {} {}'.format(left_speed, right_speed, duration)
-    return cmd_str
+    print(cmd_str)
+    backend_enqueue_message(cmd_str)
     
     
 def backend_update():
@@ -216,6 +194,14 @@ def backend_update():
 
         if (glob_model['BLE_Task'] is not None):
             if (glob_model['BLE_Task'].done()):
+                if (glob_model['BLE_Task'].exception()):
+                    print("BLE Task exception")
+                    ex = glob_model['BLE_Task'].exception()
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print(message)
+                    ui.notify(message)
+                    glob_model['BLE_Task'] = None
                 glob_BLE_connected = 0
 
         
@@ -228,18 +214,6 @@ def backend_update():
         if (not tq.empty()):
             glob_model['data'] = tq.get()
             
-            cal_plot_datapoint = [
-                int(glob_model['data']['time_ms']),
-                [
-                    int(glob_model['data']['IMU']['calibration']['system_cal']),
-                    int(glob_model['data']['IMU']['calibration']['gryo_cal']),
-                    int(glob_model['data']['IMU']['calibration']['accel_cal']),
-                    int(glob_model['data']['IMU']['calibration']['mag_cal'])
-                ]
-            ]
-            
-            glob_model['calibration_plot_data'].put(cal_plot_datapoint)
-            
             glob_model['ble_rssi'] = float(glob_model['data']['ble_rssi']) * -1.0
             if (glob_model['ble_rssi'] == -127):
                 glob_model['ble_rssi'] = 100
@@ -251,12 +225,8 @@ def backend_update():
 
 def backend_medium_update():
     if glob_model['is_init']:
-        if glob_model['joystick'][2] == 1:
-            if (glob_model['joystick'][0] and glob_model['joystick'][1]):
-                cmd_str = backend_joystick_move_cmd()
-                joystick_label.text = cmd_str
-                
-                backend_enqueue_message(cmd_str, queue_on_empty=True)
+
+        pass
 
 
 def backend_slow_update():
@@ -264,10 +234,6 @@ def backend_slow_update():
         
         json_view.properties['content'] = {'json' : glob_model['data']}
         json_view.update()
-                
-        while not glob_model['calibration_plot_data'].empty():
-            datapoint = glob_model['calibration_plot_data'].get()
-            calibration_plot.options['series'][0]['data'] = (datapoint[1])
             
                 
         if (glob_model['ble_rssi'] != 100):
@@ -304,16 +270,6 @@ def backend_slow_update():
             is_connecting_chip.set_visibility(False)
             is_connected_chip.set_visibility(False)
 
-            
-def backend_very_slow_update():
-    
-    # Testing only    
-    if TESTING_MODE:
-        calibration_test_data = np.random.rand(4)*3
-        calibration_test_data = calibration_test_data.tolist()
-        calibration_plot.options['series'][0]['data'] = calibration_test_data
-    
-    calibration_plot.update()
 
 
 
@@ -334,7 +290,6 @@ ui.timer(0, callback=backend_init, once=True)
 ui.timer(0.1, callback=backend_update)
 ui.timer(0.3, callback=backend_medium_update)
 ui.timer(0.5, callback=backend_slow_update)
-ui.timer(2, callback=backend_very_slow_update)
 
 
 with ui.header(elevated=True).style('background-color: #3874c8').classes('items-center justify-between'):
@@ -378,26 +333,12 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
         vis = ui.tab('Visualizations')
         raw = ui.tab('Raw Data')
         
-    with ui.tab_panels(tabs, value=vis).classes('w-full'):
+    with ui.tab_panels(tabs, value=raw).classes('w-full'):
         with ui.tab_panel(vis):
             
             with ui.scroll_area().classes('w-full'):
                 ui.markdown('###Plots')
-                ui.separator()
                 
-                calibration_plot = ui.echart({
-                    'xAxis': {'type': 'value', 'min': 0 , 'max': 3},
-                    'yAxis': {'type': 'category',
-                                'data': ['System', 'Gyro', 'Accel', 'Mag'],
-                                'inverse': True
-                                },
-                    'legend': {'textStyle': {'color': 'gray'}},
-                    'series': [
-                        {'type': 'bar', 'name': 'IMU Calibration Status', 'data': [0,0,0,0], 'color': '#7DDA58'},
-                    ],
-                    'grid': {'containLabel': True, 'left': 0},
-                    })
-                calibration_plot.classes('w-10/12 h-3/12')
                 
             
             ui.separator()
@@ -439,29 +380,30 @@ ui.separator()
 
 with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
 
-    with ui.card() as joystick_card:
-        joystick_card.tight()
-        joystick_card.classes('w-11/12 h-80')
+    with ui.card() as manual_move_card:
+        manual_move_card.tight()
+        manual_move_card.classes('w-11/12 h-80')
+
         with ui.card_section():
-            ui.label('Manual control joystock')
-        joystick = ui.joystick(color='blue', size=150,
-                            on_move=backend_joystick_compute,
-                            on_end=backend_joystick_end)
-        joystick.classes('w-11/12 h-11/12 bg-slate-300')
+            ui.label('Manual control')
+            
+        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
+            ui.label('Left Speed')
+            manual_control_left_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
+            
+            ui.label('Right Speed')
+            manual_control_right_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
+            
+            ui.label('Duration (ms)')
+            manual_control_duration_slider = ui.slider(min=0, max=5000, step=1, value=1000).props('label-always')
         
         with ui.card_section():
-            with ui.grid(columns='1fr 2fr').classes('w-full gap-0'):
-                joystick_max_speed_input = ui.input(label='Enter max speed here',
-                                                    value=DEFAULT_MAUAL_SPEED,
-                                                    on_change=backend_joystick_max_speed)
-                
-                joystick_label = ui.label('')
-                
-                ui.button('Reverse!', on_click=backend_move_quick_reverse)
+
+            ui.button('Execute!', on_click=backend_manual_move_click)
         
-    with ui.card() as placeholder_card:
-        placeholder_card.tight()
-        placeholder_card.classes('w-11/12')
+    with ui.card() as heading_card:
+        heading_card.tight()
+        heading_card.classes('w-11/12')
         with ui.card_section():
             car_direction_mode_sw = ui.switch('Heading Control Mode',
             on_change=backend_car_direction_mode_sw_change)

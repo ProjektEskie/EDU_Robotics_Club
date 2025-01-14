@@ -283,24 +283,24 @@ void telemetry_generate()
   doc["ble_rssi"] = op_data.ble.rssi;
 
   JsonObject IMU = doc["IMU"].to<JsonObject>();
-  IMU["last_updated"] = op_data.imu.last_update_time;
-  IMU["n_updates"] = op_data.imu.n_updates_counter;
+  // IMU["last_updated"] = op_data.imu.last_update_time;
+  // IMU["n_updates"] = op_data.imu.n_updates_counter;
   
-  JsonObject IMU_calibration = IMU["calibration"].to<JsonObject>();
-  IMU_calibration["system_cal"] = op_data.imu.system_calibration_status;
-  IMU_calibration["gryo_cal"] = op_data.imu.gryo_calibration_status;
-  IMU_calibration["accel_cal"] = op_data.imu.accel_calibration_status;
-  IMU_calibration["mag_cal"] = op_data.imu.mag_calibration_status;
+  JsonObject IMU_calibration = IMU["cal"].to<JsonObject>();
+  IMU_calibration["sys"] = op_data.imu.system_calibration_status;
+  IMU_calibration["gryo"] = op_data.imu.gryo_calibration_status;
+  IMU_calibration["accel"] = op_data.imu.accel_calibration_status;
+  IMU_calibration["mag"] = op_data.imu.mag_calibration_status;
 
   JsonObject IMU_euler_angles = IMU["euler_angles"].to<JsonObject>();
   IMU_euler_angles["heading"] = op_data.imu.euler_heading;
   IMU_euler_angles["pitch"] = op_data.imu.euler_pitch;
   IMU_euler_angles["roll"] = op_data.imu.euler_roll;
 
-  // JsonObject IMU_lin_accel = IMU["lin_accel"].to<JsonObject>();
-  // IMU_lin_accel["lin_accel_x"] = op_data.imu.linaccel_x;
-  // IMU_lin_accel["lin_accel_y"] = op_data.imu.linaccel_y;
-  // IMU_lin_accel["lin_accel_z"] = op_data.imu.linaccel_z;
+  JsonObject IMU_lin_accel = IMU["lin_accel"].to<JsonObject>();
+  IMU_lin_accel["x"] = op_data.imu.linaccel_x;
+  IMU_lin_accel["y"] = op_data.imu.linaccel_y;
+  IMU_lin_accel["z"] = op_data.imu.linaccel_z;
 
   JsonObject CAR = doc["CAR"].to<JsonObject>();
   CAR["mode"] = op_data.car.mode;

@@ -3,8 +3,7 @@
 
 #include <arduino.h>
 #include <Servo.h>
-
-#define IS_EGLOO_PLATFORM 1 // Freenove if 0
+#include "personal_config.hpp"
 
 #define PIN_BATTERY_SENSE A0
 
