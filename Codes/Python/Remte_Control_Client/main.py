@@ -21,7 +21,7 @@ tq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 
-VERSION_STR = '2.6'
+VERSION_STR = '2.7'
 
 TESTING_MODE = False
 
@@ -434,7 +434,7 @@ glob_model['is_ui_init'] = True
 
 
 
-ui.run(native=True, window_size=(1200, 1000), fullscreen=False, reload=False, port=native.find_open_port())
+ui.run(native=True, window_size=(1100, 900), fullscreen=False, reload=False, port=native.find_open_port())
 
 # To build as exe, run the following in command line (need pyinstaller)
 #  nicegui-pack --onefile --windowed --name "RCC" main.py
