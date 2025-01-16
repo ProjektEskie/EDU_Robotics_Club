@@ -185,6 +185,10 @@ def backend_manual_move_click():
     print(cmd_str)
     backend_enqueue_message(cmd_str)
     
+def backend_slew_servo(e):
+    angle = servo_angle_slider.value
+    backend_enqueue_message('car_set_servo {}'.format(angle))
+    
     
 def backend_update():
     
@@ -365,14 +369,14 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
     
 with ui.card() as comm_window:
     comm_window.tight()
-    comm_window.classes('w-11/12')
+    comm_window.classes('w-11/12 bg-gray-100')
     with ui.card_section():
         ui.label('Communication Window')
     comm_log = ui.log(max_lines=100)
     comm_log.classes('w-full h-3/12')
     comm_log.style('font-size: 75%;')
     comm_text_input = ui.input(label='Enter commands here:')
-    comm_text_input.classes('w-full h-20')
+    comm_text_input.classes('w-full h-20 bg-gray-300')
     comm_text_input.on('keydown.enter', backend_send_msg)
     comm_text_input.on('keydown.up', backend_comm_text_prev_message)
     
@@ -382,10 +386,10 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
 
     with ui.card() as manual_move_card:
         manual_move_card.tight()
-        manual_move_card.classes('w-11/12 h-80')
+        manual_move_card.classes('w-11/12 h-80 bg-yellow-200')
 
         with ui.card_section():
-            ui.label('Manual control')
+            ui.markdown('###Manual control')
             
         with ui.grid(columns='1fr 2fr').classes('w-11/12'):
             ui.label('Left Speed')
@@ -403,7 +407,7 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
         
     with ui.card() as heading_card:
         heading_card.tight()
-        heading_card.classes('w-11/12')
+        heading_card.classes('w-11/12 bg-green-200')
         with ui.card_section():
             car_direction_mode_sw = ui.switch('Heading Control Mode',
             on_change=backend_car_direction_mode_sw_change)
@@ -414,6 +418,17 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
         with ui.card_section():
             car_direction_label = ui.label('Car not in heading mode')
 
+    with ui.card() as front_sensor_card:
+        front_sensor_card.tight()
+        front_sensor_card.classes('w-11/12 h-80 bg-blue-200')
+        
+        with ui.card_section():
+            ui.markdown('###Front Sensor')
+            
+        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
+            ui.label('Sensor Angle')
+            servo_angle_slider = ui.slider(min=-90, max=90, step=1, value=0).props('label-always') \
+            .on('change', backend_slew_servo)
 
 glob_model['is_ui_init'] = True
 
