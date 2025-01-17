@@ -48,7 +48,10 @@ void setup() {
   delay(1);
 
   // Start the IMU
-  IMU_Init();
+  if (ENABLE_IMU)
+  {
+    IMU_Init();
+  }
 
   // Setup the car
   CAR_init();
@@ -71,7 +74,10 @@ void loop() {
 
   op_data.time_now = millis();
 
-  IMU_update();
+  if (ENABLE_IMU)
+  {
+    IMU_update();
+  }
 
   CAR_update();
 
@@ -281,6 +287,7 @@ void telemetry_generate()
   doc["t_last"] = op_data.time_since_last_telemetry;
   doc["n_cycles"] = op_data.n_cycles_since_last_telemetry;
   doc["ble_rssi"] = op_data.ble.rssi;
+  doc["n_out"] = _output_queue.getCount();
 
   JsonObject IMU = doc["IMU"].to<JsonObject>();
   // IMU["last_updated"] = op_data.imu.last_update_time;

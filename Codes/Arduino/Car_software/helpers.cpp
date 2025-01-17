@@ -74,3 +74,17 @@ void helper_queue_formatted_message(const char *format, ...)
   _output_buffer[CMD_OUTPUT_BUFFER_LEN - 1] = '\0';
   _output_queue.push(_output_buffer);
 }
+
+void helper_queue_data(float* data, uint8_t n_data)
+{
+  String data_str = "DATA: ";
+  for (int i = 0; i < n_data; i++)
+  {
+    data_str += String(data[i], 2);
+    if (i < (n_data - 1))
+    {
+      data_str += ", ";
+    }
+  }
+  helper_queue_messages(data_str.c_str());
+}

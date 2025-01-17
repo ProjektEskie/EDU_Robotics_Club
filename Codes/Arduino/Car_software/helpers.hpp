@@ -10,4 +10,6 @@ void helper_clear_output_buffer();
 void helper_queue_messages(const char* message);
 void helper_queue_messages(char* message);
 void helper_queue_formatted_message(const char *format_str, ...);
+void helper_queue_data(float* data, uint8_t n_data); // Transmits an array of float. Keep the number of datapoints to less than 10 please.
+
 #endif

@@ -18,12 +18,11 @@ logger = logging.getLogger(__name__)
 iq = queue.SimpleQueue()
 oq = queue.SimpleQueue()
 tq = queue.SimpleQueue()
+dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 
 VERSION_STR = '2.7'
-
-TESTING_MODE = False
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -44,7 +43,7 @@ glob_BLE_connected = 0
 class DeviceNotFoundError(Exception):
     pass
 
-async def ble_task(input_queue, output_queue, telemetry_Queue):
+async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
     target_name = glob_model['CAR_NAME']
     global glob_BLE_connected
     glob_BLE_connected = 1
@@ -76,7 +75,14 @@ async def ble_task(input_queue, output_queue, telemetry_Queue):
                     
                 elif (characteristic.uuid == "8cf10e3b-0e9c-4809-b94a-5217ed9d6902".lower()):
                     # logger.info("%s: %r", "Message from car: ", data)
-                    output_queue.put(data.decode().split('\0')[0])
+                    message = data.decode().split('\0')[0]
+                    if (message.startswith("DATA:")):
+                        data_str = message.split(':')[1]
+                        # data_str = data_str.split(',')
+                        # data_arr = np.array(data_str, dtype=np.float32)
+                        data_queue.put(data_str)
+                    else:
+                        output_queue.put(message)
 
             glob_BLE_connected = 2
 
@@ -126,7 +132,7 @@ def backend_init():
 
         
 def backend_connect():
-    glob_model['BLE_Task'] = asyncio.create_task(ble_task(iq, oq, tq))
+    glob_model['BLE_Task'] = asyncio.create_task(ble_task(iq, oq, tq, dq))
         
 def backend_disconnect():
     global glob_UI_disconnected
@@ -214,6 +220,10 @@ def backend_update():
             #                              glob_model['data']['message'])
             log_str = oq.get()
             comm_log.push(log_str)
+            
+        if (not dq.empty()):
+            data_str = dq.get()
+            data_log.push(data_str)
 
         if (not tq.empty()):
             glob_model['data'] = tq.get()
@@ -334,18 +344,12 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
     ui.markdown('##Robot Status')
     
     with ui.tabs().classes('w-full') as tabs:
-        vis = ui.tab('Visualizations')
-        raw = ui.tab('Raw Data')
+        vis = ui.tab('Data')
+        raw = ui.tab('Telemetry')
         
     with ui.tab_panels(tabs, value=raw).classes('w-full'):
         with ui.tab_panel(vis):
-            
-            with ui.scroll_area().classes('w-full'):
-                ui.markdown('###Plots')
-                
-                
-            
-            ui.separator()
+
             ui.markdown('###Bars')
             with ui.grid(columns='1fr 1fr').classes('h-6/12 gap-0'):
                 
@@ -357,6 +361,17 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                 
                 ui.label("Cycle time")
                 cycle_time_bar = ui.linear_progress()
+                
+            ui.separator()
+            
+            with ui.card() as data_window:
+                data_window.tight()
+                data_window.classes('w-full')
+                with ui.card_section():
+                    ui.markdown('###Data Window')
+                data_log = ui.log(max_lines=200)
+                data_log.classes('w-full h-4/12')
+                data_log.style('font-size: 55%;')
                 
         with ui.tab_panel(raw):
             ui.separator()
