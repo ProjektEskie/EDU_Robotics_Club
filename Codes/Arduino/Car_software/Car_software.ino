@@ -242,6 +242,17 @@ void cmd_parse()
       helper_queue_messages("Info: car_set_servo 0");
     }
   }
+  else if (strcmp("car_do_ranging", cmdParser.getCommand()) == 0)
+  {
+    // Generate some fake data for now
+    ranging_data test_data;
+    for (int i = 0; i < RANGING_DATA_SIZE; i++)
+    {
+      float random_number = random(0, 100) / 100.0;
+      test_data.distance[i] = random_number;
+    }
+    helper_queue_ranging_data(&test_data);
+  }
   else
   {
     // Command not found
@@ -276,6 +287,7 @@ void callback_func_help()
   helper_queue_messages("car_set_heading, Set the heading for heading_keeping mode.");
   helper_queue_messages("car_set_png_param, Set the parameters for the point-and-go mode.");
   helper_queue_messages("car_set_servo, Set the angle of the servo.");
+  helper_queue_messages("car_do_ranging, WIP. Generate some fake ranging data for testing.");
 }
 
 void telemetry_generate()

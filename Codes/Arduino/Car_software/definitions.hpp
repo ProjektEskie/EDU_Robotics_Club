@@ -14,11 +14,18 @@
 #define TELEMETRY_UPDATE_INTERNVAL 500
 #define BLE_OUTPUT_REFRESH_INTERVAL 100
 
+#define RANGING_DATA_SIZE 7
+
 enum _op_status_bits
 {
   IS_WIFI_CONNECTED = 0,
   IS_MOVING,
 };
+
+typedef struct _ranging_data
+{
+  float distance[RANGING_DATA_SIZE];
+} ranging_data;
 
 typedef struct _operation_data
 {

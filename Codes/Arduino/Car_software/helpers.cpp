@@ -88,3 +88,17 @@ void helper_queue_data(float* data, uint8_t n_data)
   }
   helper_queue_messages(data_str.c_str());
 }
+
+void helper_queue_ranging_data(ranging_data* data)
+{
+  String data_str = "RANGE: ";
+  for (int i = 0; i < RANGING_DATA_SIZE; i++)
+  {
+    data_str += String(data->distance[i], 3);
+    if (i < (RANGING_DATA_SIZE-1))
+    {
+      data_str += ", ";
+    }
+  }
+  helper_queue_messages(data_str.c_str());
+}
