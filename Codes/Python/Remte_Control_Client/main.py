@@ -80,7 +80,12 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                         data_str = message.split(':')[1]
                         # data_str = data_str.split(',')
                         # data_arr = np.array(data_str, dtype=np.float32)
-                        data_queue.put(data_str)
+                        data_queue.put(['DATA', data_str])
+                    elif (message.startswith("RANGE:")):
+                        data_str = message.split(':')[1]
+                        data_str = data_str.split(',')
+                        data_arr = np.array(data_str, dtype=np.float32)
+                        data_queue.put(['RANGE', data_arr])
                     else:
                         output_queue.put(message)
 
@@ -195,6 +200,8 @@ def backend_slew_servo(e):
     angle = servo_angle_slider.value
     backend_enqueue_message('car_set_servo {}'.format(angle))
     
+def backend_ranging_click():
+    backend_enqueue_message('car_do_ranging')
     
 def backend_update():
     
@@ -222,8 +229,13 @@ def backend_update():
             comm_log.push(log_str)
             
         if (not dq.empty()):
-            data_str = dq.get()
-            data_log.push(data_str)
+            data_packet = dq.get()
+            if data_packet[0] == 'DATA':
+                data_log.push(data_packet[1])
+            elif data_packet[0] == 'RANGE':
+                ranging_data = data_packet[1]
+                ranging_chart.options['series'][0]['data'] = ranging_data.tolist()
+                ranging_chart.update()
 
         if (not tq.empty()):
             glob_model['data'] = tq.get()
@@ -340,7 +352,7 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
 
 with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
     right_hand_drawer.style('background-color: #d7e3f4')
-    right_hand_drawer.props('width=500')
+    right_hand_drawer.props('width=350')
     ui.markdown('##Robot Status')
     
     with ui.tabs().classes('w-full') as tabs:
@@ -444,6 +456,38 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
             ui.label('Sensor Angle')
             servo_angle_slider = ui.slider(min=-90, max=90, step=1, value=0).props('label-always') \
             .on('change', backend_slew_servo)
+            
+    with ui.card() as ranging_card:
+        ranging_card.tight()
+        ranging_card.classes('w-11/12 h-80 bg-blue-200')
+        
+            
+        ranging_chart = ui.echart({
+            'title': {
+                'text': 'Ranging Data'
+            },
+            'polar': {
+                'radius': [5, '60%']
+            },
+            'angleAxis': {
+                'type': 'category',
+                'data': ['-90°', '-60°', '-30°', '0°', '30°', '60°', '90°'],
+                'startAngle': 195,
+                'endAngle': -15
+            },
+            'radiusAxis': {
+                'min': 0,
+                'max': 1
+            },
+            'series': [{
+                'type': 'bar',
+                'data': [1, 1, 1, 1, 1, 1, 1],
+                'coordinateSystem': 'polar'
+            }]
+        })
+        
+        with ui.card_section():
+            ui.button('Scan', on_click=backend_ranging_click)
 
 glob_model['is_ui_init'] = True
 
