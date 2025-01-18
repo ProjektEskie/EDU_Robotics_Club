@@ -496,4 +496,5 @@ glob_model['is_ui_init'] = True
 ui.run(native=True, window_size=(1100, 900), fullscreen=False, reload=False, port=native.find_open_port())
 
 # To build as exe, run the following in command line (need pyinstaller)
+#  cd .\Codes\Python\Remte_Control_Client\
 #  nicegui-pack --onefile --windowed --name "RCC" main.py
