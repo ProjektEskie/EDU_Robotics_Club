@@ -253,6 +253,13 @@ void cmd_parse()
     }
     helper_queue_ranging_data(&test_data);
   }
+  else if (strcmp("car_ping", cmdParser.getCommand()) == 0)
+  {
+    int range = CAR_echo_range_cm();
+    helper_queue_formatted_message("Info: car_ping, heading: %i deg, range: %i cm",
+                                   op_data.car.servo_angle,
+                                   range);
+  }
   else
   {
     // Command not found
@@ -288,6 +295,7 @@ void callback_func_help()
   helper_queue_messages("car_set_png_param, Set the parameters for the point-and-go mode.");
   helper_queue_messages("car_set_servo, Set the angle of the servo.");
   helper_queue_messages("car_do_ranging, WIP. Generate some fake ranging data for testing.");
+  helper_queue_messages("car_ping, WIP. Triggers a test function that performs one echo ranging test.");
 }
 
 void telemetry_generate()

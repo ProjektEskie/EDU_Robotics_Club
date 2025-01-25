@@ -7,25 +7,18 @@
 #include "BLE_Comm.hpp"
 #include "personal_config.hpp"
 
-#define JSON_BUFFER_LEN 600
+#define JSON_BUFFER_LEN 480
 #define BLE_IO_SERVICE_BUFFER_LEN 240
 #define CMD_INPUT_BUFFER_LEN BLE_IO_SERVICE_BUFFER_LEN
 #define CMD_OUTPUT_BUFFER_LEN BLE_IO_SERVICE_BUFFER_LEN
 #define TELEMETRY_UPDATE_INTERNVAL 500
 #define BLE_OUTPUT_REFRESH_INTERVAL 100
 
-#define RANGING_DATA_SIZE 7
-
 enum _op_status_bits
 {
   IS_WIFI_CONNECTED = 0,
   IS_MOVING,
 };
-
-typedef struct _ranging_data
-{
-  float distance[RANGING_DATA_SIZE];
-} ranging_data;
 
 typedef struct _operation_data
 {

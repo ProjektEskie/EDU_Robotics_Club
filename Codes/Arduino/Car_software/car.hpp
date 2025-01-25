@@ -6,6 +6,10 @@
 #include "personal_config.hpp"
 
 #define PIN_BATTERY_SENSE A0
+#define MAX_ECHO_DISTANCE_CM 200
+#define SPEED_OF_SOUND 343 // cm/s
+#define ECHO_TIMEOUT_US 10000
+#define RANGING_DATA_SIZE 7
 
 #if IS_EGLOO_PLATFORM
   #define LEFT_DIRECTION_PIN A3
@@ -15,8 +19,8 @@
   #define LEFT_SPEED_PIN 5
   #define RIGHT_SPEED_PIN 6
   #define SERVO_PIN 3
-  #define ECHO_TRIGGER_PIN 0
-  #define ECHO_RESULT_PIN 1
+  #define ECHO_TRIGGER_PIN A5
+  #define ECHO_RESULT_PIN A4
 #else
   #define LEFT_DIRECTION_PIN 4
   #define RIGHT_DIRECTION_PIN 3
@@ -35,6 +39,12 @@ typedef enum _car_mode
   CAR_MODE_PNG,  // Point and go mode.
   N_CAR_MODES
 } car_mode;
+
+typedef struct _ranging_data
+{
+  const int scan_angle[RANGING_DATA_SIZE] = {-90, -60, -30, 0, 30, 60, 90};
+  float distance[RANGING_DATA_SIZE];
+} ranging_data;
 
 typedef struct _car_manual_mode_data
 {
@@ -79,6 +89,8 @@ typedef struct _car_data
 
   Servo front_servo;
 
+  ranging_data rd;
+
   car_manual_mode_data mm_data;
   car_heading_keep_mode_data hk_data;
   car_png_mode_data png_data;
@@ -86,6 +98,7 @@ typedef struct _car_data
 
 void CAR_init();
 void CAR_update();
+int CAR_echo_range_cm(); // Returns the distance infront of the ranging sensor in cm
 
 void CAR_API_car_m_move(int left_speed, int right_speed, uint32_t duration);
 void CAR_API_set_mode(uint8_t requested_mode);

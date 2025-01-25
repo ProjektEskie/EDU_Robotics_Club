@@ -8,7 +8,6 @@ void CAR_commit_speed();
 
 extern operation_data op_data;
 
-
 void CAR_init()
 {
   pinMode(PIN_BATTERY_SENSE, INPUT);
@@ -111,6 +110,13 @@ void CAR_update()
   }
 
   CAR_commit_speed();
+}
+
+int CAR_echo_range_cm()
+{
+  int range = -1;
+
+  return range;
 }
 
 void CAR_API_car_m_move(int left_speed, int right_speed, uint32_t duration)
