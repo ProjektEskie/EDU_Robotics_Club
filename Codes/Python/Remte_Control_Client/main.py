@@ -21,7 +21,7 @@ tq = queue.SimpleQueue()
 dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
-
+TELEMETRY_LENGTH = 480
 VERSION_STR = '2.7'
 
 glob_model = {}
@@ -203,6 +203,9 @@ def backend_slew_servo(e):
 def backend_ranging_click():
     backend_enqueue_message('car_do_ranging')
     
+def backend_ping_click():
+    backend_enqueue_message('car_ping')
+    
 def backend_update():
     
     global glob_BLE_connected
@@ -267,7 +270,7 @@ def backend_slow_update():
             rssi_value = round((100 - glob_model['ble_rssi'])/60, 2)
             rssi_bar.value = rssi_value
         
-        telemetry_lengh_bar.value = round(glob_model['telemetry_str_len']/600, 2)
+        telemetry_lengh_bar.value = round(glob_model['telemetry_str_len']/TELEMETRY_LENGTH, 2)
         
         if glob_model['cycles_in_telemetry'] != 0:
             
@@ -456,6 +459,9 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
             ui.label('Sensor Angle')
             servo_angle_slider = ui.slider(min=-90, max=90, step=1, value=0).props('label-always') \
             .on('change', backend_slew_servo)
+            
+        with ui.card_section():
+            ui.button('One Ping Only', on_click=backend_ping_click)
             
     with ui.card() as ranging_card:
         ranging_card.tight()
