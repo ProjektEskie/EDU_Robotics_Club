@@ -19,8 +19,8 @@
   #define LEFT_SPEED_PIN 5
   #define RIGHT_SPEED_PIN 6
   #define SERVO_PIN 3
-  #define ECHO_TRIGGER_PIN A3
-  #define ECHO_RESULT_PIN A2
+  #define ECHO_TRIGGER_PIN A2
+  #define ECHO_RESULT_PIN A1
 #else
   #define LEFT_DIRECTION_PIN 4
   #define RIGHT_DIRECTION_PIN 3
