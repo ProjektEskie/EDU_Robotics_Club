@@ -4,6 +4,7 @@
 import threading
 import queue
 import json
+from json.decoder import JSONDecodeError
 from nicegui import app, ui, native
 import asyncio
 import math
@@ -69,7 +70,11 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     value = value.decode().split('\0')[0]
                     glob_model['telemetry_str_len'] = len(value)
                     # logger.info("%s: %r", "Expaned Telemetry", value)
-                    json_data = json.loads(value)
+                    try:
+                        json_data = json.loads(value)
+                    except JSONDecodeError:
+                        logger.warning("%s: %r", "JSON Decode error", value)
+                        return
                     telemetry_Queue.put(json_data)
                     glob_model['last_telemetry_time'] = time.monotonic()
                     
