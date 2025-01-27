@@ -122,8 +122,6 @@ int CAR_echo_range_cm()
   int range = -1;
 
   digitalWrite(ECHO_TRIGGER_PIN, HIGH);
-  delayMicroseconds(2);
-  digitalWrite(ECHO_TRIGGER_PIN, HIGH);
   delayMicroseconds(12);
   digitalWrite(ECHO_TRIGGER_PIN, LOW);
 
