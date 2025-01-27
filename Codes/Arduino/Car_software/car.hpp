@@ -7,7 +7,7 @@
 
 #define PIN_BATTERY_SENSE A0
 #define MAX_ECHO_DISTANCE_CM 200
-#define SPEED_OF_SOUND 343 // cm/s
+#define SPEED_OF_SOUND 343 // m/s
 #define ECHO_TIMEOUT_US 10000
 #define RANGING_DATA_SIZE 7
 
