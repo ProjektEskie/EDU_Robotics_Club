@@ -120,20 +120,6 @@ void CAR_update()
 int CAR_echo_range_cm()
 {
   int range = -1;
-
-  digitalWrite(ECHO_TRIGGER_PIN, HIGH);
-  delayMicroseconds(12);
-  digitalWrite(ECHO_TRIGGER_PIN, LOW);
-
-  int pulse_duration = pulseIn(ECHO_RESULT_PIN, HIGH, ECHO_TIMEOUT_US);
-  if (pulse_duration != 0)
-  {
-    // distance = pulse duration * speed of sound / 2
-    // speed of sound = 343m/s, 34300cm/s, pulse duration is in micro seconds
-    // distance in cm = pulse duration / 1000000 * 34300 / 2
-    // 1/(34300/2/1000000) ~= 58.3
-    range = pulse_duration / 58.0;
-  }
   return range;
 }
 
