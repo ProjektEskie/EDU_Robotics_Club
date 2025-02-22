@@ -242,7 +242,17 @@ def backend_update():
                 data_log.push(data_packet[1])
             elif data_packet[0] == 'RANGE':
                 ranging_data = data_packet[1]
-                ranging_chart.options['series'][0]['data'] = ranging_data.tolist()
+                temp_list_0 = []
+                temp_list_1 = []
+                for range in ranging_data:
+                    if range < 0:
+                        temp_list_0.append('-')
+                        temp_list_1.append(1)
+                    else:
+                        temp_list_0.append(range)
+                        temp_list_1.append('-')
+                ranging_chart.options['series'][0]['data'] = temp_list_0
+                ranging_chart.options['series'][1]['data'] = temp_list_1
                 ranging_chart.update()
 
         if (not tq.empty()):
@@ -493,8 +503,16 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
             'series': [{
                 'type': 'bar',
                 'data': [1, 1, 1, 1, 1, 1, 1],
-                'coordinateSystem': 'polar'
-            }]
+                'coordinateSystem': 'polar',
+                'stack': 'a',
+            },{
+                'type': 'bar',
+                'data': ['-', '-', '-', '-', '-', '-', '-'],
+                'coordinateSystem': 'polar',
+                'stack': 'a',
+                'color': 'red'
+            }
+                       ]
         })
         
         with ui.card_section():
