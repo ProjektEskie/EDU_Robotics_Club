@@ -24,7 +24,7 @@ BLEDescriptor output_descriptor("69a085e4-6ae1-4bb8-9e35-9f51fa664f92", "Outgoin
 void callback_characteristic_written(BLEDevice central, BLECharacteristic characteristic);
 
 uint8_t _telemetry_avail_flag = 0;
-uint8_t _hold_output_flag = 0;
+int _hold_output_flag = 0;
 
 void BLE_Comm_init()
 {
@@ -82,15 +82,15 @@ void BLE_Comm_update()
         telemetry_available_characteristic.writeValue(_telemetry_avail_flag);
         _telemetry_avail_flag = !_telemetry_avail_flag;
         op_data.has_new_telemetry = 0;
-        _hold_output_flag = 1; // Supress the automatic sending on the output channel for 1 cycle
+        _hold_output_flag = 2; // Supress the automatic sending on the output channel for 2 cycles
       }
 
       if ((op_data.time_now - last_output_refresh_time) > BLE_OUTPUT_REFRESH_INTERVAL)
       {
         // Do not send output for 1 refresh interval if a telemetry has just been updated
-        if (_hold_output_flag)
+        if (_hold_output_flag >= 0)
         {
-          _hold_output_flag = 0;
+          _hold_output_flag--;
         }
         else
         {
