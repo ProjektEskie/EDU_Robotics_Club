@@ -120,6 +120,16 @@ void CAR_update()
 int CAR_echo_range_cm()
 {
   int range = -1;
+  long duration;
+  digitalWrite(ECHO_TRIGGER_PIN, HIGH);
+  delayMicroseconds(12);
+  digitalWrite(ECHO_TRIGGER_PIN, LOW);
+  duration = pulseIn(ECHO_RESULT_PIN, HIGH, 10000);
+
+  if (duration > 0)
+  {
+    range = (int)(((float)duration) * 34300.0 / 2.0 / 1000000.0);
+  }
   return range;
 }
 
