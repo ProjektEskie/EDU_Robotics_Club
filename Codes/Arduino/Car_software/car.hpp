@@ -43,6 +43,7 @@ typedef enum _car_mode
 typedef struct _ranging_data
 {
   const int scan_angle[RANGING_DATA_SIZE] = {-85, -60, -30, 0, 30, 60, 85};
+  const int scan_dewell_time[RANGING_DATA_SIZE] = {350, 200, 200, 200, 200, 200, 200};
   float distance[RANGING_DATA_SIZE];
 } ranging_data;
 

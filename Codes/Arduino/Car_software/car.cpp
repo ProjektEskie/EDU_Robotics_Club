@@ -131,7 +131,7 @@ void CAR_servo_update()
   if (op_data.car.is_ranging_requested)
   {
 
-    if ((op_data.time_now - _servo_update_time) > 200)
+    if ((op_data.time_now - _servo_update_time) > op_data.car.rd.scan_dewell_time[op_data.car.ranging_data_index])
     {
       
       int range = CAR_echo_range_cm();
