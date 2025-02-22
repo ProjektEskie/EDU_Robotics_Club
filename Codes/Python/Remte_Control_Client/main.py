@@ -23,7 +23,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 480
-VERSION_STR = '2.8'
+VERSION_STR = '2.9'
 
 glob_model = {}
 glob_model['is_init'] = False
