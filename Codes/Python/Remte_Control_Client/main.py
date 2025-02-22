@@ -67,7 +67,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                 if (characteristic.uuid == "19B10001-E8F2-537E-4F6C-D104768A1214".lower()):
 
                     value = await client.read_gatt_char("7b0db1df-67ed-46ef-b091-b4472119ef6d")
-                    value = value.decode().split('\0')[0]
+                    value = value.split(b'\0')[0].decode()
                     glob_model['telemetry_str_len'] = len(value)
                     # logger.info("%s: %r", "Expaned Telemetry", value)
                     try:
@@ -80,7 +80,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     
                 elif (characteristic.uuid == "8cf10e3b-0e9c-4809-b94a-5217ed9d6902".lower()):
                     # logger.info("%s: %r", "Message from car: ", data)
-                    message = data.decode().split('\0')[0]
+                    message = data.split(b'\0')[0].decode()
                     if (message.startswith("DATA:")):
                         data_str = message.split(':')[1]
                         # data_str = data_str.split(',')
