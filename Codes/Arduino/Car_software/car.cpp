@@ -36,8 +36,7 @@ void CAR_init()
 
 void CAR_update()
 {
-
-  op_data.car.front_servo.write(-1 * op_data.car.servo_angle + op_data.car.servo_angle_offset + 90);
+  CAR_servo_update();
 
   if (op_data.car.mode == CAR_MODE_IDLE)
   {
@@ -117,6 +116,50 @@ void CAR_update()
   CAR_commit_speed();
 }
 
+void CAR_servo_update()
+{
+  static int _prev_servo_angle = 0;
+  static uint32_t _servo_update_time = 0;
+  int servo_output = -1 * op_data.car.servo_angle + op_data.car.servo_angle_offset + 90;
+  if (servo_output != _prev_servo_angle)
+  {
+    _prev_servo_angle = servo_output;
+    _servo_update_time = op_data.time_now;
+    op_data.car.front_servo.write(servo_output);
+  }
+  
+  if (op_data.car.is_ranging_requested)
+  {
+
+    if ((op_data.time_now - _servo_update_time) > 200)
+    {
+      
+      int range = CAR_echo_range_cm();
+      CAR_API_set_Servo_angle(op_data.car.rd.scan_angle[op_data.car.ranging_data_index]);
+      float range_f;
+      if (range < 0)
+      {
+        range_f = -1.0;
+      }
+      else
+      {
+        range_f = (float)range / 100.0;
+      }
+
+      op_data.car.rd.distance[op_data.car.ranging_data_index] = range_f;
+      op_data.car.ranging_data_index++;
+      if (op_data.car.ranging_data_index >= RANGING_DATA_SIZE)
+      {
+        op_data.car.is_ranging_data_ready = true;
+        op_data.car.is_ranging_requested = false;
+        helper_queue_ranging_data(&op_data.car.rd);
+        CAR_API_set_Servo_angle(0);
+      }
+    }
+  }
+
+}
+
 int CAR_echo_range_cm()
 {
   int range = -1;
@@ -182,6 +225,14 @@ void CAR_API_set_PNG_settings(float target_heading, int line_speed, uint32_t lin
 void CAR_API_set_Servo_angle(int angle)
 {
   op_data.car.servo_angle = constrain(angle, -90, 90);
+}
+
+void CAR_API_start_ranging_scan()
+{
+  op_data.car.is_ranging_data_ready = false;
+  op_data.car.ranging_data_index = 0;
+  op_data.car.is_ranging_requested = true;
+  CAR_API_set_Servo_angle(op_data.car.rd.scan_angle[op_data.car.ranging_data_index]);
 }
 
 // Generate the speed the car needs to head turn to the target heading

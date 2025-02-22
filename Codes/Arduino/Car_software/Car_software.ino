@@ -244,14 +244,7 @@ void cmd_parse()
   }
   else if (strcmp("car_do_ranging", cmdParser.getCommand()) == 0)
   {
-    // Generate some fake data for now
-    ranging_data test_data;
-    for (int i = 0; i < RANGING_DATA_SIZE; i++)
-    {
-      float random_number = random(0, 100) / 100.0;
-      test_data.distance[i] = random_number;
-    }
-    helper_queue_ranging_data(&test_data);
+    CAR_API_start_ranging_scan();
   }
   else if (strcmp("car_ping", cmdParser.getCommand()) == 0)
   {

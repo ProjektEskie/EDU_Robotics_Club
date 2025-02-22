@@ -42,7 +42,7 @@ typedef enum _car_mode
 
 typedef struct _ranging_data
 {
-  const int scan_angle[RANGING_DATA_SIZE] = {-90, -60, -30, 0, 30, 60, 90};
+  const int scan_angle[RANGING_DATA_SIZE] = {-85, -60, -30, 0, 30, 60, 85};
   float distance[RANGING_DATA_SIZE];
 } ranging_data;
 
@@ -88,7 +88,9 @@ typedef struct _car_data
   bool is_new_mode;
 
   Servo front_servo;
-
+  bool is_ranging_data_ready;
+  bool is_ranging_requested;
+  int ranging_data_index;
   ranging_data rd;
 
   car_manual_mode_data mm_data;
@@ -98,6 +100,7 @@ typedef struct _car_data
 
 void CAR_init();
 void CAR_update();
+void CAR_servo_update();
 int CAR_echo_range_cm(); // Returns the distance infront of the ranging sensor in cm
 
 void CAR_API_car_m_move(int left_speed, int right_speed, uint32_t duration);
@@ -105,5 +108,5 @@ void CAR_API_set_mode(uint8_t requested_mode);
 void CAR_API_set_heading(float requested_heading);
 void CAR_API_set_PNG_settings(float target_heading, int line_speed, uint32_t line_duration);
 void CAR_API_set_Servo_angle(int angle);
-
+void CAR_API_start_ranging_scan();
 #endif
