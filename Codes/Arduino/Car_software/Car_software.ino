@@ -11,7 +11,7 @@
 #include "Arduino_NineAxesMotion.h"
 #include <cppQueue.h>  
 
-#define OUTPUT_MESSAGE_QUEUE_CAPACITY 10
+#define OUTPUT_MESSAGE_QUEUE_CAPACITY 20
 
 #undef ARDUINOJSON_SLOT_ID_SIZE
 #define ARDUINOJSON_SLOT_ID_SIZE 1
@@ -121,11 +121,7 @@ void cmd_parse()
     return;
   }
 
-  if (strcmp("Hello", cmdParser.getCommand()) == 0)
-  {
-    callback_funct_hello();
-  }
-  else if (strcmp("car_m_move", cmdParser.getCommand()) == 0)
+  if (strcmp("car_m_move", cmdParser.getCommand()) == 0)
   {
     if (cmdParser.getParamCount() != 3)
     {
@@ -253,6 +249,39 @@ void cmd_parse()
                                    op_data.car.servo_angle,
                                    range);
   }
+  else if (strcmp("ble_set_name", cmdParser.getCommand()) == 0)
+  {
+    if (cmdParser.getParamCount() == 1)
+    {
+      if (strlen(cmdParser.getCmdParam(1)) > 19)
+      {
+        helper_clear_output_buffer();
+        sprintf(_output_buffer, "Error, '%s' command accepts a name of 19 characters or less",
+                cmdParser.getCommand());
+        helper_queue_messages(_output_buffer);
+      }
+      else
+      {
+        strcpy(op_data.ble.car_name, cmdParser.getCmdParam(1));
+        sprintf(_output_buffer, "Success, '%s'. Name set to: %s.",
+                cmdParser.getCommand(), op_data.ble.car_name);
+        helper_save_BLE_name();
+        helper_queue_messages(_output_buffer);
+        helper_queue_messages("Info: Reboot the car for the name to take effect.");
+      }
+    }
+    else
+    {
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 1 arguement",
+              cmdParser.getCommand());
+      helper_queue_messages(_output_buffer);
+      helper_queue_messages("Info: ble_set_name (ble, set name) example usage:");
+      helper_queue_messages("Info: ble_set_name [name], where name is the name to set the BLE device to");
+      helper_queue_messages("Info: ble_set_name RClub_Car");
+      helper_queue_messages("Info: name needs to be 19 characters or less");
+    }
+  }
   else
   {
     // Command not found
@@ -269,13 +298,6 @@ void cmd_parse()
 
 }
 
-void callback_funct_hello()
-{
-  helper_clear_output_buffer();
-  sprintf(_output_buffer, "Hello no. %s", cmdParser.getCmdParam(1));
-  helper_queue_messages(_output_buffer);
-  // Serial.println(_output_buffer);
-}
 
 void callback_func_help()
 {
@@ -287,8 +309,9 @@ void callback_func_help()
   helper_queue_messages("car_set_heading, Set the heading for heading_keeping mode.");
   helper_queue_messages("car_set_png_param, Set the parameters for the point-and-go mode.");
   helper_queue_messages("car_set_servo, Set the angle of the servo.");
-  helper_queue_messages("car_do_ranging, WIP. Generate some fake ranging data for testing.");
+  helper_queue_messages("car_do_ranging, Perform a ranging scan across the front arc of the car.");
   helper_queue_messages("car_ping, WIP. Triggers a test function that performs one echo ranging test.");
+  helper_queue_messages("ble_set_name, Set the name of the BLE device.");
 }
 
 void telemetry_generate()

@@ -33,9 +33,13 @@ void BLE_Comm_init()
 
     while (1);
   }
+  if (!helper_load_BLE_name())
+  {
+    Serial.println("Error loading car name from EEPROM, using default name.");
+  }
 
-  BLE.setLocalName(BLE_CAR_NAME);
-  BLE.setDeviceName(BLE_CAR_NAME);
+  BLE.setLocalName(op_data.ble.car_name);
+  BLE.setDeviceName(op_data.ble.car_name);
   
 
   telemetry_characteristic.addDescriptor(telemetry_descriptor);
@@ -58,7 +62,7 @@ void BLE_Comm_init()
   BLE.advertise();
 
   Serial.print("Bluetooth running as:");
-  Serial.println(BLE_CAR_NAME);
+  Serial.println(op_data.ble.car_name);
 }
 
 void BLE_Comm_update()

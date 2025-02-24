@@ -1,4 +1,5 @@
 #include <cstdarg>
+#include <EEPROM.h>
 #include "helpers.hpp"
 #include "definitions.hpp"
 #include <cppQueue.h>  
@@ -101,4 +102,43 @@ void helper_queue_ranging_data(ranging_data* data)
     }
   }
   helper_queue_messages(data_str.c_str());
+}
+
+bool helper_load_BLE_name()
+{
+  bool status = false;
+  extern operation_data op_data;
+  uint8_t start_byte;
+  uint8_t len;
+  char car_name[20];
+  EEPROM.get(EEPROM_ADDRESS, start_byte);
+  if (start_byte == EEPROM_START_BYTE)
+  {
+    EEPROM.get(EEPROM_ADDRESS + 1, len);
+    for (int i = 0; i < len; i++)
+    {
+      EEPROM.get(EEPROM_ADDRESS + 2 + i, car_name[i]);
+    }
+    car_name[len] = '\0';
+    car_name[19] = '\0';
+    strcpy(op_data.ble.car_name, car_name);
+    status = true;
+  }
+  else
+  {
+    Serial.println("Error: BLE name not found in EEPROM");
+  }
+  return status;
+}
+
+void helper_save_BLE_name()
+{
+  extern operation_data op_data;
+  int len = strlen(op_data.ble.car_name);
+  EEPROM.put(EEPROM_ADDRESS, EEPROM_START_BYTE); 
+  EEPROM.put(EEPROM_ADDRESS + 1, len);
+  for (int i = 0; i < len; i++)
+  {
+    EEPROM.put(EEPROM_ADDRESS + 2 + i, op_data.ble.car_name[i]);
+  }
 }
