@@ -26,9 +26,9 @@
   #define RIGHT_DIRECTION_PIN 3
   #define LEFT_SPEED_PIN 6
   #define RIGHT_SPEED_PIN 5
-  #define SERVO_PIN 2
-  #define ECHO_TRIGGER_PIN 0
-  #define ECHO_RESULT_PIN 1
+  #define SERVO_PIN 9
+  #define ECHO_TRIGGER_PIN 10
+  #define ECHO_RESULT_PIN 11
 #endif
 
 typedef enum _car_mode
