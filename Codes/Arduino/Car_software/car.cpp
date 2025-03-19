@@ -5,6 +5,7 @@
 bool CAR_turn_to_heading(float target_heading);
 void CAR_stop();
 void CAR_commit_speed();
+void CAR_auto_mode();
 
 extern operation_data op_data;
 
@@ -109,11 +110,87 @@ void CAR_update()
     }
 
   }
+  else if (op_data.car.mode == CAR_MODE_AUTO)
+  {
+    CAR_auto_mode();
+  }
   else
   {
   }
 
   CAR_commit_speed();
+}
+
+void CAR_auto_mode()
+{
+
+  if (op_data.car.is_new_mode)
+  {
+    op_data.car.is_new_mode = false;
+    op_data.car.am_data.step = CAR_AUTO_INIT;
+  }
+
+  op_data.car.am_data.range_infront = CAR_echo_range_cm();
+  if (op_data.car.am_data.range_infront < 0)
+  {
+    op_data.car.am_data.range_infront = 1000;
+  }
+
+  switch (op_data.car.am_data.step)
+  {
+    case CAR_AUTO_INIT:
+    {
+      op_data.car.am_data.step = CAR_AUTO_GOTO_HEADING;
+      op_data.car.am_data.reverse_speed = -250;
+      op_data.car.am_data.reverse_duration = 200;
+      break;
+    }
+    case CAR_AUTO_GOTO_HEADING:
+    {
+      if (CAR_turn_to_heading(op_data.car.am_data.target_heading))
+      {
+        op_data.car.am_data.step = CAR_AUTO_LINEAR_TRAVEL;
+        op_data.car.am_data._forward_start_time = op_data.time_now;
+        op_data.car.left_speed = op_data.car.am_data.forward_speed;
+        op_data.car.right_speed = op_data.car.am_data.forward_speed;
+      }
+      break;
+    }
+    case CAR_AUTO_LINEAR_TRAVEL:
+    {
+      if ((op_data.time_now - op_data.car.am_data._forward_start_time) > op_data.car.am_data.forward_duration)
+      {
+        op_data.car.am_data.step = CAR_AUTO_DONE;
+      }
+      break;
+    }
+    case CAR_ATUO_BRAKE_START:
+    {
+      op_data.car.left_speed = op_data.car.am_data.reverse_speed;
+      op_data.car.right_speed = op_data.car.am_data.reverse_speed;
+      op_data.car.am_data._reverse_start_time = op_data.time_now;
+      op_data.car.am_data.step = CAR_AUTO_BRAKE_COMPLETE;
+      break;
+    }
+    case CAR_AUTO_BRAKE_COMPLETE:
+    {
+      if ((op_data.time_now - op_data.car.am_data._reverse_start_time) > op_data.car.am_data.reverse_duration)
+      {
+        op_data.car.am_data.step = CAR_AUTO_DONE;
+      }
+      break;
+    }
+    case CAR_AUTO_DONE:
+    {
+      CAR_stop();
+      CAR_API_set_mode(CAR_MODE_IDLE);
+      break;
+    }
+    
+  
+    default:
+      break;
+  }
 }
 
 void CAR_servo_update()
@@ -233,6 +310,15 @@ void CAR_API_start_ranging_scan()
   op_data.car.ranging_data_index = 0;
   op_data.car.is_ranging_requested = true;
   CAR_API_set_Servo_angle(op_data.car.rd.scan_angle[op_data.car.ranging_data_index]);
+}
+
+void CAR_API_set_auto_settings(int forward_speed, float target_heading, uint32_t forward_duration)
+{
+  op_data.car.am_data.target_heading = target_heading;
+  op_data.car.am_data.forward_speed = forward_speed;
+  op_data.car.am_data.forward_duration = forward_duration;
+  op_data.car.is_new_mode = true;
+  op_data.car.am_data.step = CAR_AUTO_INIT;
 }
 
 // Generate the speed the car needs to head turn to the target heading

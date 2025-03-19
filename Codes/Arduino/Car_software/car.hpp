@@ -37,6 +37,7 @@ typedef enum _car_mode
   CAR_MODE_MANUAL,
   CAR_MODE_HEADING_KEEP,
   CAR_MODE_PNG,  // Point and go mode.
+  CAR_MODE_AUTO,
   N_CAR_MODES
 } car_mode;
 
@@ -77,6 +78,33 @@ typedef struct _car_point_and_go_mode_data
   uint32_t straight_line_duration;
 } car_png_mode_data;
 
+typedef enum _car_auto_mode_steps
+{
+  CAR_AUTO_INIT,
+  CAR_AUTO_GOTO_HEADING,
+  CAR_AUTO_LINEAR_TRAVEL,
+  CAR_AUTO_OBSTACLE_DETECTED,
+  CAR_ATUO_BRAKE_START,
+  CAR_AUTO_BRAKE_COMPLETE,
+  CAR_AUTO_DONE
+} car_auto_mode_steps;
+
+typedef struct _car_auto_mode_data
+{
+  car_auto_mode_steps step;
+  int forward_speed;
+  float target_heading;
+  uint32_t forward_duration;
+  int reverse_speed;
+  uint32_t reverse_duration;
+  uint32_t _forward_start_time;
+  uint32_t _reverse_start_time;
+  uint32_t _turn_start_time;
+
+  int range_infront;
+
+} car_auto_mode_data;
+
 typedef struct _car_data
 {
   int left_speed;
@@ -97,6 +125,7 @@ typedef struct _car_data
   car_manual_mode_data mm_data;
   car_heading_keep_mode_data hk_data;
   car_png_mode_data png_data;
+  car_auto_mode_data am_data;
 } car_data;
 
 void CAR_init();
@@ -108,6 +137,7 @@ void CAR_API_car_m_move(int left_speed, int right_speed, uint32_t duration);
 void CAR_API_set_mode(uint8_t requested_mode);
 void CAR_API_set_heading(float requested_heading);
 void CAR_API_set_PNG_settings(float target_heading, int line_speed, uint32_t line_duration);
+void CAR_API_set_auto_settings(int forward_speed, float target_heading, uint32_t forward_duration);
 void CAR_API_set_Servo_angle(int angle);
 void CAR_API_start_ranging_scan();
 #endif

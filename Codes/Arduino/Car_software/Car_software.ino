@@ -282,6 +282,35 @@ void cmd_parse()
       helper_queue_messages("Info: name needs to be 19 characters or less");
     }
   }
+  else if (strcmp("car_m_auto", cmdParser.getCommand()) == 0)
+  {
+    if (cmdParser.getParamCount() == 3)
+    {
+      float target_heading;
+      int forward_speed;
+      uint32_t forward_duration;
+
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "car_m_auto, you've entered parameters of '%s' '%s' '%s'",
+              cmdParser.getCmdParam(1),
+              cmdParser.getCmdParam(2),
+              cmdParser.getCmdParam(3));
+      helper_queue_messages(_output_buffer);
+
+      target_heading = atof(cmdParser.getCmdParam(1));
+      forward_speed = atoi(cmdParser.getCmdParam(2));
+      forward_duration = atol(cmdParser.getCmdParam(3));
+
+      CAR_API_set_auto_settings(forward_speed, target_heading, forward_duration);
+    }
+    else
+    {
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 3 arguements, target_heading, forward_speed, forward_duration",
+              cmdParser.getCommand());
+      helper_queue_messages(_output_buffer);
+    }
+  }
   else
   {
     // Command not found
@@ -312,6 +341,7 @@ void callback_func_help()
   helper_queue_messages("car_do_ranging, Perform a ranging scan across the front arc of the car.");
   helper_queue_messages("car_ping, WIP. Triggers a test function that performs one echo ranging test.");
   helper_queue_messages("ble_set_name, Set the name of the BLE device.");
+  helper_queue_messages("car_m_auto, Set the parameters for the automatic mode.");
 }
 
 void telemetry_generate()
