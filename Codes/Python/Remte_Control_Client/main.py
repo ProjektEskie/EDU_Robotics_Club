@@ -201,6 +201,16 @@ def backend_manual_move_click():
     print(cmd_str)
     backend_enqueue_message(cmd_str)
     
+def backend_auto_mode_click():
+    heading = auto_control_heading_slider.value
+    speed = int(auto_control_speed_slider.value)
+    duration = auto_control_duration_slider.value
+    
+    duration = int(duration * 1000)
+    
+    cmd_str = 'car_m_auto {} {} {}'.format(heading, speed, duration)
+    backend_enqueue_message(cmd_str)
+    
 def backend_slew_servo(e):
     angle = servo_angle_slider.value
     backend_enqueue_message('car_set_servo {}'.format(angle))
@@ -428,40 +438,21 @@ with ui.card() as comm_window:
 ui.separator()  
 
 with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
-
-    with ui.card() as manual_move_card:
-        manual_move_card.tight()
-        manual_move_card.classes('w-11/12 h-80 bg-yellow-200')
-
+    with ui.card() as auto_card:
+        auto_card.tight()
+        auto_card.classes('w-11/12 bg-green-200')
         with ui.card_section():
-            ui.markdown('###Manual control')
-            
+            ui.markdown('###Auto Mode Settings')
         with ui.grid(columns='1fr 2fr').classes('w-11/12'):
-            ui.label('Left Speed')
-            manual_control_left_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
-            
-            ui.label('Right Speed')
-            manual_control_right_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
-            
-            ui.label('Duration (ms)')
-            manual_control_duration_slider = ui.slider(min=0, max=5000, step=1, value=1000).props('label-always')
+            ui.label('Heading')
+            auto_control_heading_slider = ui.slider(min=-180, max=180, step=1, value=0).props('label-always')
+            ui.label('Forward Speed')
+            auto_control_speed_slider = ui.slider(min=0, max=255, step=1, value=200).props('label-always')
+            ui.label('Duration (s)')
+            auto_control_duration_slider = ui.slider(min=0, max=10, step=0.2, value=2).props('label-always')
+        with ui.card_section():
+            ui.button('Execute!', on_click=backend_auto_mode_click)
         
-        with ui.card_section():
-
-            ui.button('Execute!', on_click=backend_manual_move_click)
-        
-    with ui.card() as heading_card:
-        heading_card.tight()
-        heading_card.classes('w-11/12 bg-green-200')
-        with ui.card_section():
-            car_direction_mode_sw = ui.switch('Heading Control Mode',
-            on_change=backend_car_direction_mode_sw_change)
-        joystick_direction = ui.joystick(color='green', size=50,
-                                            on_move=backend_car_direction_joystick_update,
-                                            on_end=backend_car_direction_joystick_set)
-        joystick_direction.classes('w-full h-full')
-        with ui.card_section():
-            car_direction_label = ui.label('Car not in heading mode')
 
     with ui.card() as front_sensor_card:
         front_sensor_card.tight()
@@ -477,6 +468,21 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
             
         with ui.card_section():
             ui.button('One Ping Only', on_click=backend_ping_click)
+            
+    with ui.card() as manual_move_card:
+        manual_move_card.tight()
+        manual_move_card.classes('w-11/12 h-80 bg-yellow-200')
+        with ui.card_section():
+            ui.markdown('###Manual control')
+        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
+            ui.label('Left Speed')
+            manual_control_left_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
+            ui.label('Right Speed')
+            manual_control_right_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
+            ui.label('Duration (ms)')
+            manual_control_duration_slider = ui.slider(min=0, max=5000, step=1, value=1000).props('label-always')       
+        with ui.card_section():
+            ui.button('Execute!', on_click=backend_manual_move_click)
             
     with ui.card() as ranging_card:
         ranging_card.tight()
@@ -517,6 +523,19 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
         
         with ui.card_section():
             ui.button('Scan', on_click=backend_ranging_click)
+            
+    with ui.card() as heading_card:
+        heading_card.tight()
+        heading_card.classes('w-11/12 bg-green-200')
+        with ui.card_section():
+            car_direction_mode_sw = ui.switch('Heading Control Mode',
+            on_change=backend_car_direction_mode_sw_change)
+        joystick_direction = ui.joystick(color='green', size=50,
+                                            on_move=backend_car_direction_joystick_update,
+                                            on_end=backend_car_direction_joystick_set)
+        joystick_direction.classes('w-full h-full')
+        with ui.card_section():
+            car_direction_label = ui.label('Car not in heading mode')
 
 glob_model['is_ui_init'] = True
 
