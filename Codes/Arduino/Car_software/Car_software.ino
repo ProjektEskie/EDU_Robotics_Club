@@ -353,27 +353,30 @@ void telemetry_generate()
   doc["t_last"] = op_data.time_since_last_telemetry;
   doc["n_cycles"] = op_data.n_cycles_since_last_telemetry;
   doc["ble_rssi"] = op_data.ble.rssi;
-  doc["n_out"] = _output_queue.getCount();
+  // doc["n_out"] = _output_queue.getCount();
 
   JsonObject IMU = doc["IMU"].to<JsonObject>();
+  IMU["cal"].add(op_data.imu.system_calibration_status);
+  IMU["cal"].add(op_data.imu.gryo_calibration_status);
+  IMU["cal"].add(op_data.imu.accel_calibration_status);
+  IMU["cal"].add(op_data.imu.mag_calibration_status);
+
   // IMU["last_updated"] = op_data.imu.last_update_time;
   // IMU["n_updates"] = op_data.imu.n_updates_counter;
   
-  JsonObject IMU_calibration = IMU["cal"].to<JsonObject>();
-  IMU_calibration["sys"] = op_data.imu.system_calibration_status;
-  IMU_calibration["gryo"] = op_data.imu.gryo_calibration_status;
-  IMU_calibration["accel"] = op_data.imu.accel_calibration_status;
-  IMU_calibration["mag"] = op_data.imu.mag_calibration_status;
+  // JsonObject IMU_calibration = IMU["cal"].to<JsonObject>();
+  // IMU_calibration["sys"] = op_data.imu.system_calibration_status;
+  // IMU_calibration["gryo"] = op_data.imu.gryo_calibration_status;
+  // IMU_calibration["accel"] = op_data.imu.accel_calibration_status;
+  // IMU_calibration["mag"] = op_data.imu.mag_calibration_status;
 
-  JsonObject IMU_euler_angles = IMU["euler_angles"].to<JsonObject>();
-  IMU_euler_angles["heading"] = op_data.imu.euler_heading;
-  IMU_euler_angles["pitch"] = op_data.imu.euler_pitch;
-  IMU_euler_angles["roll"] = op_data.imu.euler_roll;
+  IMU["euler"].add(op_data.imu.euler_heading);
+  IMU["euler"].add(op_data.imu.euler_pitch);
+  IMU["euler"].add(op_data.imu.euler_roll);
 
-  JsonObject IMU_lin_accel = IMU["lin_accel"].to<JsonObject>();
-  IMU_lin_accel["x"] = op_data.imu.linaccel_x;
-  IMU_lin_accel["y"] = op_data.imu.linaccel_y;
-  IMU_lin_accel["z"] = op_data.imu.linaccel_z;
+  IMU["lin_accel"].add(op_data.imu.linaccel_x);
+  IMU["lin_accel"].add(op_data.imu.linaccel_y);
+  IMU["lin_accel"].add(op_data.imu.linaccel_z);
 
   JsonObject CAR = doc["CAR"].to<JsonObject>();
   CAR["servo_angle"] = op_data.car.servo_angle;

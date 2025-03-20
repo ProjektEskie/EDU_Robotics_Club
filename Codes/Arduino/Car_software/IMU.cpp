@@ -49,7 +49,7 @@ void IMU_update()
 
     op_data.imu.euler_heading = op_data.imu.mySensor.readEulerHeading();
     op_data.imu.euler_roll = op_data.imu.mySensor.readEulerRoll();
-    op_data.imu.euler_pitch = op_data.imu.mySensor.readEulerPitch();
+    op_data.imu.euler_pitch = op_data.imu.mySensor.readEulerPitch() * -1.0;
 
     op_data.imu.linaccel_x = op_data.imu.mySensor.readLinearAccelX();
     op_data.imu.linaccel_y = op_data.imu.mySensor.readLinearAccelY();
