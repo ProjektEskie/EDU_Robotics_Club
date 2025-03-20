@@ -92,8 +92,10 @@ typedef enum _car_auto_mode_steps
 typedef struct _car_auto_mode_data
 {
   car_auto_mode_steps step;
+  float starting_heading;
   int forward_speed;
-  float target_heading;
+  float target_heading_delta;
+  float target_heading_absuolute;
   uint32_t forward_duration;
   int reverse_speed;
   uint32_t reverse_duration;
