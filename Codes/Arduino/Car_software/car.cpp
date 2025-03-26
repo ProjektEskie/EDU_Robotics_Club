@@ -130,7 +130,11 @@ void CAR_auto_mode()
     op_data.car.am_data.step = CAR_AUTO_INIT;
   }
 
-  op_data.car.am_data.range_infront = CAR_echo_range_cm();
+  if (op_data.sync.pulse_500ms)
+  {
+    op_data.car.am_data.range_infront = CAR_echo_range_cm();
+  }
+  
   if (op_data.car.am_data.range_infront < 0)
   {
     op_data.car.am_data.range_infront = 1000;
@@ -216,6 +220,7 @@ void CAR_servo_update()
 {
   static int _prev_servo_angle = 0;
   static uint32_t _servo_update_time = 0;
+
   int servo_output = -1 * op_data.car.servo_angle + op_data.car.servo_angle_offset + 90;
   if (servo_output != _prev_servo_angle)
   {

@@ -25,6 +25,21 @@ enum _op_status_bits
   IS_MOVING,
 };
 
+typedef struct _sync_pulses
+{
+  uint8_t pulse_10ms;
+  uint8_t pulse_50ms;
+  uint8_t pulse_100ms;
+  uint8_t pulse_500ms;
+  uint8_t pulse_1000ms;
+
+  uint32_t _10ms_start_time;
+  uint32_t _50ms_start_time;
+  uint32_t _100ms_start_time;
+  uint32_t _500ms_start_time;
+  uint32_t _1000ms_start_time;
+} sync_pulses;
+
 typedef struct _operation_data
 {
   unsigned int status;
@@ -33,6 +48,8 @@ typedef struct _operation_data
   uint32_t time_since_last_telemetry;
   uint8_t has_new_telemetry;
   uint32_t n_cycles_since_last_telemetry;
+
+  sync_pulses sync;
 
   imu_data imu;
   car_data car;

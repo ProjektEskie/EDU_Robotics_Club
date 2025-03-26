@@ -67,12 +67,14 @@ void setup() {
   op_data.n_cycles_since_last_telemetry = 0;
 
   Serial.println("Ready!");
+  sync_pulse_reset();
 }
 
 
 void loop() {
 
   op_data.time_now = millis();
+  sync_pulse_update();
 
   if (ENABLE_IMU)
   {
@@ -90,6 +92,7 @@ void loop() {
   cmd_parse();
 
   op_data.n_cycles_since_last_telemetry++;
+  sync_pulse_reset();
 }
 
 void cmd_parse()
@@ -342,6 +345,49 @@ void callback_func_help()
   helper_queue_messages("car_ping, WIP. Triggers a test function that performs one echo ranging test.");
   helper_queue_messages("ble_set_name, Set the name of the BLE device.");
   helper_queue_messages("car_m_auto, Set the parameters for the automatic mode.");
+}
+
+// Look at the time stored in sync, and if it has been long enough, update the pulse
+void sync_pulse_update()
+{
+  if ((op_data.time_now - op_data.sync._10ms_start_time) >= 10)
+  {
+    op_data.sync._10ms_start_time = op_data.time_now;
+    op_data.sync.pulse_10ms = 1;
+  }
+
+  if ((op_data.time_now - op_data.sync._50ms_start_time) >= 50)
+  {
+    op_data.sync._50ms_start_time = op_data.time_now;
+    op_data.sync.pulse_50ms = 1;
+  }
+
+  if ((op_data.time_now - op_data.sync._100ms_start_time) >= 100)
+  {
+    op_data.sync._100ms_start_time = op_data.time_now;
+    op_data.sync.pulse_100ms = 1;
+  }
+
+  if ((op_data.time_now - op_data.sync._500ms_start_time) >= 500)
+  {
+    op_data.sync._500ms_start_time = op_data.time_now;
+    op_data.sync.pulse_500ms = 1;
+  }
+
+  if ((op_data.time_now - op_data.sync._1000ms_start_time) >= 1000)
+  {
+    op_data.sync._1000ms_start_time = op_data.time_now;
+    op_data.sync.pulse_1000ms = 1;
+  }
+}
+
+void sync_pulse_reset()
+{
+  op_data.sync.pulse_10ms = 0;
+  op_data.sync.pulse_50ms = 0;
+  op_data.sync.pulse_100ms = 0;
+  op_data.sync.pulse_500ms = 0;
+  op_data.sync.pulse_1000ms = 0;
 }
 
 void telemetry_generate()
