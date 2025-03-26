@@ -130,7 +130,7 @@ void CAR_auto_mode()
     op_data.car.am_data.step = CAR_AUTO_INIT;
   }
 
-  if (op_data.sync.pulse_500ms)
+  if (op_data.sync.pulse_50ms)
   {
     op_data.car.am_data.range_infront = CAR_echo_range_cm();
   }
