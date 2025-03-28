@@ -10,10 +10,12 @@ extern operation_data op_data;
 extern char _input_buffer[BLE_IO_SERVICE_BUFFER_LEN];
 extern char _output_buffer[BLE_IO_SERVICE_BUFFER_LEN];
 extern char _json_buffer[JSON_BUFFER_LEN];
+extern char _telemetry_notify_buffer[BLE_IO_SERVICE_BUFFER_LEN];
 extern cppQueue _output_queue;
+extern cppQueue tracker_queue;
 
 BLEService car_service("19B10000-E8F2-537E-4F6C-D104768A1214");
-BLEByteCharacteristic telemetry_available_characteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLENotify);
+BLECharacteristic telemetry_available_characteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLENotify, BLE_IO_SERVICE_BUFFER_LEN, true);
 BLECharacteristic telemetry_characteristic("7b0db1df-67ed-46ef-b091-b4472119ef6d", BLERead, JSON_BUFFER_LEN, true);
 BLECharacteristic input_characteristic("99924646-b9d6-4a51-bda9-ef084d793abf", BLEWrite, BLE_IO_SERVICE_BUFFER_LEN, true);
 BLECharacteristic output_characteristic("8cf10e3b-0e9c-4809-b94a-5217ed9d6902", BLERead | BLENotify, BLE_IO_SERVICE_BUFFER_LEN, true);
@@ -82,11 +84,37 @@ void BLE_Comm_update()
 
       if (op_data.has_new_telemetry)
       {
+
+        ble_telemetry_avail_data _telemetry_avail_data;
+        memset(&_telemetry_avail_data, 0, sizeof(ble_telemetry_avail_data));
+        _telemetry_avail_data.telemetry_avail_flag = _telemetry_avail_flag;
+        _telemetry_avail_data.sys_time = op_data.time_now;
+        _telemetry_avail_data.left_speed = op_data.car.left_speed;
+        _telemetry_avail_data.right_speed = op_data.car.right_speed;
+
+        uint8_t _tracker_count = 0;
+        for (int i = 0; i < BLE_N_TRACKER_POINTS_PER_TELEMETRY; i++)
+        {
+          if (!tracker_queue.isEmpty())
+          {
+            tracker_queue.pop(&_telemetry_avail_data.tracker_data[_tracker_count]);
+            _tracker_count++;
+          }
+          else
+          {
+            break;
+          }
+        }
+
+        _telemetry_avail_data.n_tracker_points = _tracker_count;
+
         telemetry_characteristic.writeValue(_json_buffer, JSON_BUFFER_LEN, true);
-        telemetry_available_characteristic.writeValue(_telemetry_avail_flag);
+        memset(_telemetry_notify_buffer, 0, BLE_IO_SERVICE_BUFFER_LEN);
+        memcpy(_telemetry_notify_buffer, &_telemetry_avail_data, sizeof(ble_telemetry_avail_data));
+        telemetry_available_characteristic.writeValue(_telemetry_notify_buffer, BLE_IO_SERVICE_BUFFER_LEN, true);
         _telemetry_avail_flag = !_telemetry_avail_flag;
         op_data.has_new_telemetry = 0;
-        _hold_output_flag = 2; // Supress the automatic sending on the output channel for 2 cycles
+        _hold_output_flag = 4; // Supress the automatic sending on the output channel for 4 cycles
       }
 
       if ((op_data.time_now - last_output_refresh_time) > BLE_OUTPUT_REFRESH_INTERVAL)

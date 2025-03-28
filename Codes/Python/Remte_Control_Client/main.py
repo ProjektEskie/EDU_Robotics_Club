@@ -13,6 +13,7 @@ from bleak import BleakScanner, BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
 import logging
 import time
+import struct
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,66 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                 # logger.info("%s: %r", characteristic.uuid, data.decode())
 
                 if (characteristic.uuid == "19B10001-E8F2-537E-4F6C-D104768A1214".lower()):
+                    
+                    # logger.info("%s: %r", "Telemetry notify", data)
+                    
+                    # We first decode the notification packet
+                    # the packet is encoded as follows:
+                        # typedef struct _ble_telemetry_avail_data
+                        # {
+                        # uint8_t telemetry_avail_flag;
+                        # uint8_t n_tracker_points;
+                        # uint8_t spare_bytes[2];
+                        # uint32_t sys_time;
+                        # int left_speed;
+                        # int right_speed;
+                        # uint8_t spare_bytes_2[4];
+                        # track_point tracker_data[BLE_N_TRACKER_POINTS_PER_TELEMETRY];
+                        # } ble_telemetry_avail_data; 
+                    # Decode the notification packet
+                    # Define the C struct format for decoding
 
+                    # The struct format string corresponds to the telemetry packet structure
+                    # Format: telemetry_avail_flag (1 byte), n_tracker_points (1 byte),
+                    # spare_bytes (2 bytes), sys_time (4 bytes), left_speed (4 bytes),
+                    # right_speed (4 bytes), spare_bytes_2 (4 bytes)
+                    struct_format = "<BB2xIii4x"
+
+                    # Unpack the fixed part of the packet
+                    try:
+                        telemetry_avail_flag, n_tracker_points, sys_time, left_speed, right_speed = struct.unpack_from(struct_format, data)
+                        logger.info("Telemetry Flag: %d, Tracker Points: %d, Sys Time: %d, Left Speed: %d, Right Speed: %d",
+                                    telemetry_avail_flag, n_tracker_points, sys_time, left_speed, right_speed)
+                    except struct.error as e:
+                        logger.error("Error unpacking telemetry packet: %s", e)
+                        return
+                    
+                    # Decode tracker data from the array part of the struct
+                    tracker_data = []
+                    tracker_data_format = "<ii"  # Each tracker point consists of two integers (x, y)
+                    tracker_data_size = struct.calcsize(tracker_data_format)
+
+                    for i in range(n_tracker_points):
+                        offset = 20 + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
+                        try:
+                            x, y = struct.unpack_from(tracker_data_format, data, offset)
+                            # Convert units from integer to appropriate scale
+                            x = float(x) / 10.0  # 0.1 deg to degree
+                            y = float(y) / 10.0  # mm to cm
+                            tracker_data.append((x, y))
+                        except struct.error as e:
+                            logger.error("Error unpacking tracker data at index %d: %s", i, e)
+                            continue
+
+                    # Log the tracker data
+                    if n_tracker_points > 0:
+                        for track_point in tracker_data:
+                            logger.info("%s: %r", "Tracker Data", track_point)
+                    
+                    
+                    # Then we perform a read for the extended telemetry packet, the car
+                    # will pause transmission of the messaging packet for 2 cycles (~100ms)
+                    # to give airtime for this extended packet to be read.
                     value = await client.read_gatt_char("7b0db1df-67ed-46ef-b091-b4472119ef6d")
                     value = value.split(b'\0')[0].decode()
                     glob_model['telemetry_str_len'] = len(value)

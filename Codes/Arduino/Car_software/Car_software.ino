@@ -4,6 +4,7 @@
 #include "car.hpp"
 #include "IMU.hpp"
 #include "BLE_Comm.hpp"
+#include "tracker.hpp"
 
 
 #include <CmdParser.hpp>
@@ -29,9 +30,14 @@ char _json_buffer[JSON_BUFFER_LEN];
 
 char _input_buffer[BLE_IO_SERVICE_BUFFER_LEN];
 char _output_buffer[BLE_IO_SERVICE_BUFFER_LEN];
+char _telemetry_notify_buffer[BLE_IO_SERVICE_BUFFER_LEN];
 
 char _queue_buffer[OUTPUT_MESSAGE_QUEUE_CAPACITY][BLE_IO_SERVICE_BUFFER_LEN];
 cppQueue _output_queue(BLE_IO_SERVICE_BUFFER_LEN, OUTPUT_MESSAGE_QUEUE_CAPACITY, FIFO, false, _queue_buffer, sizeof(_queue_buffer));
+
+track_point _tracker_buffer[TRACKER_QUEUE_CAPACITY];
+cppQueue tracker_queue(sizeof(track_point), TRACKER_QUEUE_CAPACITY, FIFO, true, _tracker_buffer, sizeof(_tracker_buffer));
+
 
 CmdParser cmdParser;
 
@@ -66,8 +72,12 @@ void setup() {
   op_data.time_since_last_telemetry = 0;
   op_data.n_cycles_since_last_telemetry = 0;
 
-  Serial.println("Ready!");
   sync_pulse_reset();
+
+  tracker_init();
+
+  Serial.println("Ready!");
+
 }
 
 
@@ -90,6 +100,8 @@ void loop() {
   BLE_Comm_update();
 
   cmd_parse();
+
+  tracker_update();
 
   op_data.n_cycles_since_last_telemetry++;
   sync_pulse_reset();
@@ -395,7 +407,7 @@ void telemetry_generate()
   JsonDocument doc;
 
   doc["status"] = op_data.status;
-  doc["time_ms"] = op_data.time_now;
+  // doc["time_ms"] = op_data.time_now;
   doc["t_last"] = op_data.time_since_last_telemetry;
   doc["n_cycles"] = op_data.n_cycles_since_last_telemetry;
   doc["ble_rssi"] = op_data.ble.rssi;
