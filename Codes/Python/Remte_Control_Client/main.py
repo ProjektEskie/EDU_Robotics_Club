@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 480
-VERSION_STR = '2.10'
+VERSION_STR = '2.11'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -67,46 +67,34 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
 
                 if (characteristic.uuid == "19B10001-E8F2-537E-4F6C-D104768A1214".lower()):
                     
-                    # logger.info("%s: %r", "Telemetry notify", data)
+                    # logger.info("%s: %r", "Telemetry notify", data[0:80].hex(' '))
                     
                     # We first decode the notification packet
-                    # the packet is encoded as follows:
-                        # typedef struct _ble_telemetry_avail_data
-                        # {
-                        # uint8_t telemetry_avail_flag;
-                        # uint8_t n_tracker_points;
-                        # uint8_t spare_bytes[2];
-                        # uint32_t sys_time;
-                        # int left_speed;
-                        # int right_speed;
-                        # uint8_t spare_bytes_2[4];
-                        # track_point tracker_data[BLE_N_TRACKER_POINTS_PER_TELEMETRY];
-                        # } ble_telemetry_avail_data; 
-                    # Decode the notification packet
-                    # Define the C struct format for decoding
 
                     # The struct format string corresponds to the telemetry packet structure
                     # Format: telemetry_avail_flag (1 byte), n_tracker_points (1 byte),
-                    # spare_bytes (2 bytes), sys_time (4 bytes), left_speed (4 bytes),
-                    # right_speed (4 bytes), spare_bytes_2 (4 bytes)
-                    struct_format = "<BB2xIii4x"
+                    # spare_bytes (10 bytes), sys_time (4 bytes), left_speed (4 bytes),
+                    # right_speed (4 bytes), heading (4 bytes)
+                    struct_format = "<BB10xIiiI"
 
                     # Unpack the fixed part of the packet
                     try:
-                        telemetry_avail_flag, n_tracker_points, sys_time, left_speed, right_speed = struct.unpack_from(struct_format, data)
-                        logger.info("Telemetry Flag: %d, Tracker Points: %d, Sys Time: %d, Left Speed: %d, Right Speed: %d",
-                                    telemetry_avail_flag, n_tracker_points, sys_time, left_speed, right_speed)
+                        telemetry_avail_flag, n_tracker_points, sys_time, left_speed, right_speed, heading = struct.unpack_from(struct_format, data)
+                        heading = (float)(heading) / 10.0  # Convert heading from 0.1 deg to degrees
+                        # logger.info("Telemetry Flag: %d, Tracker Points: %d, Sys Time: %d, Left Speed: %d, Right Speed: %d, heading: %d",
+                        #             telemetry_avail_flag, n_tracker_points, sys_time, left_speed, right_speed, heading)
                     except struct.error as e:
                         logger.error("Error unpacking telemetry packet: %s", e)
                         return
                     
                     # Decode tracker data from the array part of the struct
                     tracker_data = []
-                    tracker_data_format = "<ii"  # Each tracker point consists of two integers (x, y)
+                    tracker_data_format = "<ll"  # Each tracker point consists of two integers (x, y)
                     tracker_data_size = struct.calcsize(tracker_data_format)
+                    fixed_part_size = struct.calcsize(struct_format)  # Size of the fixed part of the struct
 
                     for i in range(n_tracker_points):
-                        offset = 20 + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
+                        offset = fixed_part_size + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
                         try:
                             x, y = struct.unpack_from(tracker_data_format, data, offset)
                             # Convert units from integer to appropriate scale
@@ -118,10 +106,22 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                             continue
 
                     # Log the tracker data
-                    if n_tracker_points > 0:
-                        for track_point in tracker_data:
-                            logger.info("%s: %r", "Tracker Data", track_point)
+                    # if n_tracker_points > 0:
+                    #     for track_point in tracker_data:
+                    #         logger.info("%s: %r", "Tracker Data", track_point)
+                            
+                    # Create a dictionary to hold the telemetry data
+                    telemetry_data = {
+                        'telemetry_avail_flag': telemetry_avail_flag,
+                        'n_tracker_points': n_tracker_points,
+                        'sys_time': sys_time,
+                        'left_speed': left_speed,
+                        'right_speed': right_speed,
+                        'heading': heading,
+                        'tracker_data': tracker_data
+                    }
                     
+                    data_queue.put(['TELE_AND_TRACK', telemetry_data])
                     
                     # Then we perform a read for the extended telemetry packet, the car
                     # will pause transmission of the messaging packet for 2 cycles (~100ms)
@@ -199,6 +199,8 @@ def backend_init():
         glob_model['ble_rssi'] = 0
         glob_model['_prev_txt_cmd_message'] = ''
         glob_model['car_state'] = 0
+        glob_model['car_heading'] = 0
+        glob_model['car_heading_tracking_latch'] = 0
 
         
 def backend_connect():
@@ -281,6 +283,11 @@ def backend_ranging_click():
 def backend_ping_click():
     backend_enqueue_message('car_ping')
     
+def backend_clear_tracker_click():
+    tracker_chart.options['series'][0]['data'] = [[0, 0]]
+    glob_model['car_heading_tracking_latch'] = glob_model['car_heading']
+    tracker_chart.update()
+    
 def backend_update():
     
     global glob_BLE_connected
@@ -324,6 +331,46 @@ def backend_update():
                 ranging_chart.options['series'][0]['data'] = temp_list_0
                 ranging_chart.options['series'][1]['data'] = temp_list_1
                 ranging_chart.update()
+            elif data_packet[0] == 'TELE_AND_TRACK':
+                telemetry_data = data_packet[1]
+                # telemetry_table_rows = [
+                #     {'field': 'System Time', 'value': 0},
+                #     {'field': 'Left Speed', 'value': 0},
+                #     {'field': 'Right Speed', 'value': 0},
+                #     {'field': 'Heading', 'value': 0},
+                # ]
+                telemetry_table_rows[0]['value'] = telemetry_data['sys_time']
+                telemetry_table_rows[1]['value'] = telemetry_data['left_speed']
+                telemetry_table_rows[2]['value'] = telemetry_data['right_speed']
+                telemetry_table_rows[3]['value'] = telemetry_data['heading']
+                glob_model['car_heading'] = telemetry_data['heading']
+                telemetry_table.update()
+                
+                for tracking_point in telemetry_data['tracker_data']:
+                    
+                    #location is relateive to the car, so necessary to add to the last point
+                    last_xy = tracker_chart.options['series'][0]['data'][-1]
+                    
+                    angle_rad = math.radians(tracking_point[0] - glob_model['car_heading_tracking_latch'])  # Convert angle to radians, relative to the car heading
+                    # polar coordinate has the 0 degree pointing to the right and advance counter-clockwise
+                    # we wish to represent the 0 degree direction as the y axis, and 90 degrees as the postive x-axis
+                    # so we need to rotate the angle by 90 degrees
+                    angle_rad = angle_rad + math.pi/2
+                    # Calculate the x and y offsets using polar coordinates
+                    
+                    # distance has already been converted to cm in the telemetry packet
+                    dx = tracking_point[1] * math.cos(angle_rad) * -1.0 # Calculate x-offset
+                    dy = tracking_point[1] * math.sin(angle_rad)  # Calculate y-offset
+                    # Calculate the new coordinates and rotate so the 0 degrees is at the top
+                    # of the chart
+                    
+                    
+                    x = dx + last_xy[0]  # Calculate x-coordinate
+                    y = dy + last_xy[1] # Calculate y-coordinate
+                    track_point_xy = [x, y]
+                    tracker_chart.options['series'][0]['data'].append(track_point_xy)
+                    
+                tracker_chart.update()
 
         if (not tq.empty()):
             glob_model['data'] = tq.get()
@@ -447,10 +494,9 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
         vis = ui.tab('Data')
         raw = ui.tab('Telemetry')
         
-    with ui.tab_panels(tabs, value=raw).classes('w-full'):
+    with ui.tab_panels(tabs, value=vis).classes('w-full'):
         with ui.tab_panel(vis):
 
-            ui.markdown('###Bars')
             with ui.grid(columns='1fr 1fr').classes('h-6/12 gap-0'):
                 
                 ui.label("Signal Strength")
@@ -461,7 +507,63 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                 
                 ui.label("Cycle time")
                 cycle_time_bar = ui.linear_progress()
-                
+            
+            ui.separator()
+            telemetry_table_columns = [
+                    {'name': 'Field', 'label': 'Field', 'field': 'field', 'required': True, 'align': 'left'},
+                    {'name': 'Value', 'label': 'Value', 'field': 'value', 'align': 'right'},
+                ]
+            
+            telemetry_table_rows = [
+                    {'field': 'System Time', 'value': 0},
+                    {'field': 'Left Speed', 'value': 0},
+                    {'field': 'Right Speed', 'value': 0},
+                    {'field': 'Heading', 'value': 0},
+                ]
+            
+            telemetry_table = ui.table(columns=telemetry_table_columns, rows=telemetry_table_rows, row_key='field')
+            telemetry_table.classes('w-full')
+            telemetry_table.style('font-size: 75%;')
+            
+            ui.separator()
+            
+            with ui.card() as tracker_window:
+                tracker_window.tight()
+                tracker_window.classes('w-full')
+
+                    
+                tracker_chart = ui.echart({
+                    'title': {
+                        'text': 'Tracker Data'
+                    },
+                    'xAxis': {
+                        'type': 'value',
+                        'name': 'X (cm)',
+                        'nameLocation': 'middle',
+                        'scale': True,
+                        'axisLabel': {
+                            'formatter': '{value}'
+                        },
+                    },
+                    'yAxis': {
+                        'type': 'value',
+                        'name': 'Y (cm)',
+                        'nameLocation': 'middle',
+                        'scale': True,
+                        'axisLabel': {
+                            'formatter': '{value}'
+                        },
+                    },
+                    'series': [{
+                        'type': 'scatter',
+                        'data': [[0, 0]],
+                        'symbolSize': 5
+                    }]
+                })
+  
+                with ui.card_section():
+                    ui.button('Clear plot / Re-Orient', on_click=backend_clear_tracker_click)
+                    
             ui.separator()
             
             with ui.card() as data_window:
@@ -543,12 +645,13 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
             manual_control_duration_slider = ui.slider(min=0, max=5000, step=1, value=1000).props('label-always')       
         with ui.card_section():
             ui.button('Execute!', on_click=backend_manual_move_click)
+
+
             
     with ui.card() as ranging_card:
         ranging_card.tight()
         ranging_card.classes('w-11/12 h-80 bg-blue-200')
-        
-            
+
         ranging_chart = ui.echart({
             'title': {
                 'text': 'Ranging Data'
@@ -583,7 +686,7 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
         
         with ui.card_section():
             ui.button('Scan', on_click=backend_ranging_click)
-            
+      
     with ui.card() as heading_card:
         heading_card.tight()
         heading_card.classes('w-11/12 bg-green-200')
@@ -596,6 +699,8 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
         joystick_direction.classes('w-full h-full')
         with ui.card_section():
             car_direction_label = ui.label('Car not in heading mode')
+            
+
 
 glob_model['is_ui_init'] = True
 
