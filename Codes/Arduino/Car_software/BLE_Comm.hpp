@@ -12,11 +12,11 @@ typedef struct _ble_telemetry_avail_data
 {
   uint8_t telemetry_avail_flag;
   uint8_t n_tracker_points;
-  uint8_t spare_bytes[2];
+  uint8_t spare_bytes[10];
   uint32_t sys_time;
   int left_speed;
   int right_speed;
-  uint8_t spare_bytes_2[4];
+  int32_t heading;  // in 0.1 degrees
   track_point tracker_data[BLE_N_TRACKER_POINTS_PER_TELEMETRY];
 } ble_telemetry_avail_data; 
 

@@ -50,7 +50,7 @@ int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms)
 {
     int distance_mm;
     float speed_mps;
-    speed_mps = (average_car_speed / 255.0) * 1.0;
+    speed_mps = ((float)average_car_speed / 255.0) * 1.0;
     distance_mm = (int)(speed_mps * interval_ms);
     return distance_mm;
 }

@@ -91,6 +91,7 @@ void BLE_Comm_update()
         _telemetry_avail_data.sys_time = op_data.time_now;
         _telemetry_avail_data.left_speed = op_data.car.left_speed;
         _telemetry_avail_data.right_speed = op_data.car.right_speed;
+        _telemetry_avail_data.heading = (int32_t)(op_data.imu.euler_heading * 10.0);
 
         uint8_t _tracker_count = 0;
         for (int i = 0; i < BLE_N_TRACKER_POINTS_PER_TELEMETRY; i++)
@@ -114,7 +115,7 @@ void BLE_Comm_update()
         telemetry_available_characteristic.writeValue(_telemetry_notify_buffer, BLE_IO_SERVICE_BUFFER_LEN, true);
         _telemetry_avail_flag = !_telemetry_avail_flag;
         op_data.has_new_telemetry = 0;
-        _hold_output_flag = 4; // Supress the automatic sending on the output channel for 4 cycles
+        _hold_output_flag = 5; // Supress the automatic sending on the output channel for 5 cycles
       }
 
       if ((op_data.time_now - last_output_refresh_time) > BLE_OUTPUT_REFRESH_INTERVAL)
