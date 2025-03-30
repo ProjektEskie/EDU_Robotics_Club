@@ -140,80 +140,72 @@ void CAR_auto_mode()
     op_data.car.am_data.range_infront = 1000;
   }
 
-  switch (op_data.car.am_data.step)
-  {
-    case CAR_AUTO_INIT:
-    {
-      op_data.car.am_data.step = CAR_AUTO_GOTO_HEADING;
-      op_data.car.am_data.reverse_speed = -250;
-      op_data.car.am_data.reverse_duration = 200;
-      op_data.car.am_data.starting_heading = op_data.imu.euler_heading;
 
-      // Convert the target heading (-180 to 180 delta from current) to absolute heading (0 to 360)
-      float absolute_heading = op_data.car.am_data.starting_heading + op_data.car.am_data.target_heading_delta;
-      if (absolute_heading > 360.0)
-      {
-        absolute_heading -= 360.0;
-      }
-      else if (absolute_heading < 0.0)
-      {
-        absolute_heading += 360.0;
-      }
-      op_data.car.am_data.target_heading_absuolute = absolute_heading;
-      helper_queue_formatted_message("Auto mode: ready to turn to %f", op_data.car.am_data.target_heading_absuolute);
-      break;
-    }
-    case CAR_AUTO_GOTO_HEADING:
+  if (op_data.car.am_data.step == CAR_AUTO_INIT)
+  {
+    op_data.car.am_data.step = CAR_AUTO_GOTO_HEADING;
+    op_data.car.am_data.reverse_speed = -250;
+    op_data.car.am_data.reverse_duration = 100;
+    op_data.car.am_data.starting_heading = op_data.imu.euler_heading;
+
+    // Convert the target heading (-180 to 180 delta from current) to absolute heading (0 to 360)
+    float absolute_heading = op_data.car.am_data.starting_heading + op_data.car.am_data.target_heading_delta;
+    if (absolute_heading > 360.0)
     {
-      if (CAR_turn_to_heading(op_data.car.am_data.target_heading_absuolute))
-      {
-        op_data.car.am_data.step = CAR_AUTO_LINEAR_TRAVEL;
-        op_data.car.am_data._forward_start_time = op_data.time_now;
-        op_data.car.left_speed = op_data.car.am_data.forward_speed;
-        op_data.car.right_speed = op_data.car.am_data.forward_speed;
-        helper_queue_formatted_message("Auto mode: heading reached, moving forward at %i for %i ms",
-          op_data.car.am_data.forward_speed,
-          op_data.car.am_data.forward_duration);
-      }
-      break;
+      absolute_heading -= 360.0;
     }
-    case CAR_AUTO_LINEAR_TRAVEL:
+    else if (absolute_heading < 0.0)
     {
-      if ((op_data.time_now - op_data.car.am_data._forward_start_time) > op_data.car.am_data.forward_duration)
-      {
-        op_data.car.am_data.step = CAR_AUTO_DONE;
-        helper_queue_formatted_message("Auto mode: forward travel complete as normal, stopping");
-      }
-      break;
+      absolute_heading += 360.0;
     }
-    case CAR_ATUO_BRAKE_START:
-    {
-      op_data.car.left_speed = op_data.car.am_data.reverse_speed;
-      op_data.car.right_speed = op_data.car.am_data.reverse_speed;
-      op_data.car.am_data._reverse_start_time = op_data.time_now;
-      op_data.car.am_data.step = CAR_AUTO_BRAKE_COMPLETE;
-      break;
-    }
-    case CAR_AUTO_BRAKE_COMPLETE:
-    {
-      if ((op_data.time_now - op_data.car.am_data._reverse_start_time) > op_data.car.am_data.reverse_duration)
-      {
-        op_data.car.am_data.step = CAR_AUTO_DONE;
-      }
-      break;
-    }
-    case CAR_AUTO_DONE:
-    {
-      CAR_stop();
-      CAR_API_set_mode(CAR_MODE_IDLE);
-      helper_queue_messages("Auto mode: done, returning to idle mode.");
-      break;
-    }
-    
-  
-    default:
-      break;
+    op_data.car.am_data.target_heading_absuolute = absolute_heading;
+    helper_queue_formatted_message("Auto mode: ready to turn to %f", op_data.car.am_data.target_heading_absuolute);
   }
+  else if (op_data.car.am_data.step == CAR_AUTO_GOTO_HEADING)
+  {
+    if (CAR_turn_to_heading(op_data.car.am_data.target_heading_absuolute))
+    {
+      op_data.car.am_data.step = CAR_AUTO_LINEAR_TRAVEL;
+      op_data.car.am_data._forward_start_time = op_data.time_now;
+      op_data.car.left_speed = op_data.car.am_data.forward_speed;
+      op_data.car.right_speed = op_data.car.am_data.forward_speed;
+      helper_queue_formatted_message("Auto mode: heading reached, moving forward at %i for %i ms",
+        op_data.car.am_data.forward_speed,
+        op_data.car.am_data.forward_duration);
+    }
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_LINEAR_TRAVEL)
+  {
+    if ((op_data.time_now - op_data.car.am_data._forward_start_time) > op_data.car.am_data.forward_duration)
+    {
+      op_data.car.am_data.step = CAR_AUTO_DONE;
+      helper_queue_formatted_message("Auto mode: forward travel complete as normal, stopping");
+    }
+  }
+  else if (op_data.car.am_data.step == CAR_ATUO_BRAKE_START)
+  {
+    op_data.car.left_speed = op_data.car.am_data.reverse_speed;
+    op_data.car.right_speed = op_data.car.am_data.reverse_speed;
+    op_data.car.am_data._reverse_start_time = op_data.time_now;
+    op_data.car.am_data.step = CAR_AUTO_BRAKE_COMPLETE;
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_BRAKE_COMPLETE)
+  {
+    if ((op_data.time_now - op_data.car.am_data._reverse_start_time) > op_data.car.am_data.reverse_duration)
+    {
+      op_data.car.am_data.step = CAR_AUTO_DONE;
+    }
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_DONE)
+  {
+    CAR_stop();
+    CAR_API_set_mode(CAR_MODE_IDLE);
+    helper_queue_messages("Auto mode: done, returning to idle mode.");
+
+  }
+  else
+  {}
+  
 }
 
 void CAR_servo_update()
