@@ -89,6 +89,14 @@ typedef enum _car_auto_mode_steps
   CAR_AUTO_DONE
 } car_auto_mode_steps;
 
+typedef struct _auto_mode_state
+{
+  car_auto_mode_steps step_at_state_change;
+  int forward_speed;
+  float target_heading_absuolute;
+  uint32_t forward_time_remaining;
+} auto_mode_state;
+
 typedef struct _car_auto_mode_data
 {
   car_auto_mode_steps step;
@@ -104,6 +112,8 @@ typedef struct _car_auto_mode_data
   uint32_t _turn_start_time;
 
   int range_infront;
+
+  auto_mode_state saved_state;
 
 } car_auto_mode_data;
 
