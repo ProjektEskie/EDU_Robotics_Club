@@ -106,9 +106,9 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                             continue
 
                     # Log the tracker data
-                    if n_tracker_points > 0:
-                        for track_point in tracker_data:
-                            logger.info("%s: %r", "Tracker Data", track_point)
+                    # if n_tracker_points > 0:
+                    #     for track_point in tracker_data:
+                    #         logger.info("%s: %r", "Tracker Data", track_point)
                             
                     # Create a dictionary to hold the telemetry data
                     telemetry_data = {
