@@ -137,8 +137,10 @@ void CAR_auto_mode()
   
   if (op_data.car.am_data.range_infront < 0)
   {
-    op_data.car.am_data.range_infront = 1000;
+    op_data.car.am_data.range_infront = 255;
   }
+
+  op_data.car.am_data.range_infront = constrain(op_data.car.am_data.range_infront, 0, 255);
 
 
   if (op_data.car.am_data.step == CAR_AUTO_INIT)

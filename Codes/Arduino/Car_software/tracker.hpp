@@ -10,6 +10,8 @@ typedef struct _track_point
 {
     int32_t heading;  // in 0.1 degrees
     int32_t distance_mm; 
+    uint8_t echo_range_cm;
+    uint8_t spare_bytes[3];
 } track_point;
 
 void tracker_init();
