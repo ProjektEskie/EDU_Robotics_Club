@@ -432,9 +432,9 @@ void telemetry_generate()
   IMU["euler"].add(op_data.imu.euler_pitch);
   IMU["euler"].add(op_data.imu.euler_roll);
 
-  IMU["lin_accel"].add(op_data.imu.linaccel_x);
-  IMU["lin_accel"].add(op_data.imu.linaccel_y);
-  IMU["lin_accel"].add(op_data.imu.linaccel_z);
+  // IMU["lin_accel"].add(op_data.imu.linaccel_x);
+  // IMU["lin_accel"].add(op_data.imu.linaccel_y);
+  // IMU["lin_accel"].add(op_data.imu.linaccel_z);
 
   JsonObject CAR = doc["CAR"].to<JsonObject>();
   CAR["servo_angle"] = op_data.car.servo_angle;
@@ -442,8 +442,8 @@ void telemetry_generate()
   
   if (op_data.car.mode == CAR_MODE_MANUAL)
   {
-    CAR["manual_mode"]["left_speed"] = op_data.car.mm_data.mm_left_speed;
-    CAR["manual_mode"]["right_speed"] = op_data.car.mm_data.mm_right_speed;
+    // CAR["manual_mode"]["left_speed"] = op_data.car.mm_data.mm_left_speed;
+    // CAR["manual_mode"]["right_speed"] = op_data.car.mm_data.mm_right_speed;
     CAR["manual_mode"]["duration"] = op_data.car.mm_data.mm_duration;
   }
   else if (op_data.car.mode == CAR_MODE_HEADING_KEEP)
@@ -452,15 +452,15 @@ void telemetry_generate()
   }
   else if (op_data.car.mode == CAR_MODE_AUTO)
   {
-    CAR["auto_mode"]["step"] = op_data.car.am_data.step;
-    CAR["auto_mode"]["range_infront"] = op_data.car.am_data.range_infront;
-    CAR["auto_mode"]["target_heading_absuolute"] = op_data.car.am_data.target_heading_absuolute;
+    // CAR["auto_mode"]["step"] = op_data.car.am_data.step;
+    // CAR["auto_mode"]["range_infront"] = op_data.car.am_data.range_infront;
+    CAR["auto_mode"]["tgt_heading"] = op_data.car.am_data.target_heading_absuolute;
   }
   
   
-  JsonObject CAR_speeds = CAR["speeds"].to<JsonObject>();
-  CAR_speeds["left"] = op_data.car.left_speed;
-  CAR_speeds["right"] = op_data.car.right_speed;
+  // JsonObject CAR_speeds = CAR["speeds"].to<JsonObject>();
+  // CAR_speeds["left"] = op_data.car.left_speed;
+  // CAR_speeds["right"] = op_data.car.right_speed;
 
   memset(_json_buffer, 0, JSON_BUFFER_LEN);
 
