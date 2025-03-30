@@ -42,6 +42,7 @@ void tracker_update()
         track_point tp;
         tp.heading = (uint16_t)(op_data.imu.euler_heading*10);
         tp.distance_mm = distance_mm;
+        tp.echo_range_cm = op_data.car.am_data.range_infront;
         tracker_queue.push(&tp);
     }
 }
