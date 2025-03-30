@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 480
-VERSION_STR = '2.11'
+VERSION_STR = '2.12'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -89,26 +89,26 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     
                     # Decode tracker data from the array part of the struct
                     tracker_data = []
-                    tracker_data_format = "<ll"  # Each tracker point consists of two integers (x, y)
+                    tracker_data_format = "<llB3x"  # Each tracker point consists of two integers, one byte and 3 padding bytes (x, y, r)
                     tracker_data_size = struct.calcsize(tracker_data_format)
                     fixed_part_size = struct.calcsize(struct_format)  # Size of the fixed part of the struct
 
                     for i in range(n_tracker_points):
                         offset = fixed_part_size + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
                         try:
-                            x, y = struct.unpack_from(tracker_data_format, data, offset)
+                            x, y, r = struct.unpack_from(tracker_data_format, data, offset)
                             # Convert units from integer to appropriate scale
                             x = float(x) / 10.0  # 0.1 deg to degree
                             y = float(y) / 10.0  # mm to cm
-                            tracker_data.append((x, y))
+                            tracker_data.append((x, y, r))
                         except struct.error as e:
                             logger.error("Error unpacking tracker data at index %d: %s", i, e)
                             continue
 
                     # Log the tracker data
-                    # if n_tracker_points > 0:
-                    #     for track_point in tracker_data:
-                    #         logger.info("%s: %r", "Tracker Data", track_point)
+                    if n_tracker_points > 0:
+                        for track_point in tracker_data:
+                            logger.info("%s: %r", "Tracker Data", track_point)
                             
                     # Create a dictionary to hold the telemetry data
                     telemetry_data = {
@@ -287,6 +287,8 @@ def backend_clear_tracker_click():
     tracker_chart.options['series'][0]['data'] = [[0, 0]]
     glob_model['car_heading_tracking_latch'] = glob_model['car_heading']
     tracker_chart.update()
+    range_chart.options['series'][0]['data'] = [[0, 0]]
+    range_chart.update()
     
 def backend_update():
     
@@ -370,7 +372,12 @@ def backend_update():
                     track_point_xy = [x, y]
                     tracker_chart.options['series'][0]['data'].append(track_point_xy)
                     
+                    last_range = range_chart.options['series'][0]['data'][-1]
+                    range_point = [last_range[0] + 1, tracking_point[2]]
+                    range_chart.options['series'][0]['data'].append(range_point)
+                    
                 tracker_chart.update()
+                range_chart.update()
 
         if (not tq.empty()):
             glob_model['data'] = tq.get()
@@ -549,6 +556,37 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                         'type': 'value',
                         'name': 'Y (cm)',
                         'nameLocation': 'middle',
+                        'scale': True,
+                        'axisLabel': {
+                            'formatter': '{value}'
+                        },
+                    },
+                    'series': [{
+                        'type': 'scatter',
+                        'data': [[0, 0]],
+                        'symbolSize': 5
+                    }]
+                })
+                
+                range_chart = ui.echart({
+                    'title': {
+                        'text': 'Ranging Data'
+                    },
+                    'xAxis': {
+                        'type': 'value',
+                        'name': 'Sample Number',
+                        'nameLocation': 'middle',
+                        'scale': True,
+                        'axisLabel': {
+                            'formatter': '{value}'
+                        },
+                    },
+                    'yAxis': {
+                        'type': 'value',
+                        'name': 'Y (cm)',
+                        'nameLocation': 'middle',
+                        'min': 0,
+                        'max': 100,
                         'scale': True,
                         'axisLabel': {
                             'formatter': '{value}'
