@@ -605,8 +605,8 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                         'type': 'value',
                         'name': 'Acceleration',
                         'nameLocation': 'middle',
-                        'min': 0,
-                        'max': 10,
+                        'min': -2,
+                        'max': 2,
                         'scale': True,
                         'alignTicks': True,
                         'axisLabel': {
