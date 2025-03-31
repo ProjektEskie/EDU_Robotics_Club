@@ -149,6 +149,9 @@ void CAR_auto_mode()
     op_data.car.am_data.reverse_speed = -250;
     op_data.car.am_data.reverse_duration = 100;
     op_data.car.am_data.starting_heading = op_data.imu.euler_heading;
+    op_data.car.am_data._delay_start_time = 0;
+    op_data.car.am_data._delay_duration = 0;
+    op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
 
     // Convert the target heading (-180 to 180 delta from current) to absolute heading (0 to 360)
     float absolute_heading = op_data.car.am_data.starting_heading + op_data.car.am_data.target_heading_delta;
@@ -183,6 +186,16 @@ void CAR_auto_mode()
       op_data.car.am_data.step = CAR_AUTO_DONE;
       helper_queue_formatted_message("Auto mode: forward travel complete as normal, stopping");
     }
+    else if (op_data.car.am_data.range_infront < 20)
+    {
+      op_data.car.am_data._delay_start_time = op_data.time_now;
+      op_data.car.am_data._delay_duration = 200;
+      CAR_stop();
+      op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
+      op_data.car.am_data.step = CAR_AUTO_DELAY_START;
+      helper_queue_formatted_message("Auto mode: obstacle detected, stopping and delaying for %i ms",
+        op_data.car.am_data._delay_duration);
+    }
   }
   else if (op_data.car.am_data.step == CAR_ATUO_BRAKE_START)
   {
@@ -196,6 +209,13 @@ void CAR_auto_mode()
     if ((op_data.time_now - op_data.car.am_data._reverse_start_time) > op_data.car.am_data.reverse_duration)
     {
       op_data.car.am_data.step = CAR_AUTO_DONE;
+    }
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_DELAY_START)
+  {
+    if ((op_data.time_now - op_data.car.am_data._delay_start_time) > op_data.car.am_data._delay_duration)
+    {
+      op_data.car.am_data.step = op_data.car.am_data.post_delay_step;
     }
   }
   else if (op_data.car.am_data.step == CAR_AUTO_DONE)
