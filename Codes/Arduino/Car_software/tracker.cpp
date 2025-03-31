@@ -40,8 +40,12 @@ void tracker_update()
         // are available
         int distance_mm = _tracker_distance_estimate(average_car_speed, 100);
         track_point tp;
-        tp.heading = (uint16_t)(op_data.imu.euler_heading*10);
-        tp.distance_mm = distance_mm;
+        int heading = (int)(op_data.imu.euler_heading * 10);
+        // Store the heading and distance in a single variable
+        tp.heading_and_distance = (int32_t)((heading << 16) | (distance_mm & 0xFFFF));
+        int lin_accel_x = (int)(op_data.imu.linaccel_x * 100);
+        // Store the linear acceleration in cm/s/s
+        tp.lin_accel_x = lin_accel_x;
         tp.echo_range_cm = op_data.car.am_data.range_infront;
         tracker_queue.push(&tp);
     }
