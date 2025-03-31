@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 480
-VERSION_STR = '2.12'
+VERSION_STR = '2.13'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -96,11 +96,15 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     for i in range(n_tracker_points):
                         offset = fixed_part_size + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
                         try:
-                            x, y, r = struct.unpack_from(tracker_data_format, data, offset)
+                            _xy, linaccel, r = struct.unpack_from(tracker_data_format, data, offset)
+                            # x position is stored as the upper 16 bits of the first integer, y position is stored as the lower 16 bits of the first integer
+                            x = _xy >> 16  # Extract the upper 16 bits for x
+                            y = _xy & 0xFFFF  # Extract the lower 16 bits for y
                             # Convert units from integer to appropriate scale
                             x = float(x) / 10.0  # 0.1 deg to degree
                             y = float(y) / 10.0  # mm to cm
-                            tracker_data.append((x, y, r))
+                            linaccel = float(linaccel) / 100.0  # cm/s^2 to m/s^2
+                            tracker_data.append((x, y, r, linaccel))
                         except struct.error as e:
                             logger.error("Error unpacking tracker data at index %d: %s", i, e)
                             continue
@@ -288,6 +292,7 @@ def backend_clear_tracker_click():
     glob_model['car_heading_tracking_latch'] = glob_model['car_heading']
     tracker_chart.update()
     range_chart.options['series'][0]['data'] = [[0, 0]]
+    range_chart.options['series'][1]['data'] = [[0, 0]]
     range_chart.update()
     
 def backend_update():
@@ -374,7 +379,10 @@ def backend_update():
                     
                     last_range = range_chart.options['series'][0]['data'][-1]
                     range_point = [last_range[0] + 1, tracking_point[2]]
+                    last_accel = range_chart.options['series'][1]['data'][-1]
+                    range_point_accel = [last_accel[0] + 1, tracking_point[3]]
                     range_chart.options['series'][0]['data'].append(range_point)
+                    range_chart.options['series'][1]['data'].append(range_point_accel)
                     
                 tracker_chart.update()
                 range_chart.update()
@@ -581,7 +589,8 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                             'formatter': '{value}'
                         },
                     },
-                    'yAxis': {
+                    'yAxis': [
+                        {
                         'type': 'value',
                         'name': 'Y (cm)',
                         'nameLocation': 'middle',
@@ -592,10 +601,32 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                             'formatter': '{value}'
                         },
                     },
+                    {
+                        'type': 'value',
+                        'name': 'Acceleration',
+                        'nameLocation': 'middle',
+                        'min': 0,
+                        'max': 10,
+                        'scale': True,
+                        'alignTicks': True,
+                        'axisLabel': {
+                            'formatter': '{value}'
+                        },
+                        'position': 'right',
+                    }
+                    ],
                     'series': [{
                         'type': 'scatter',
                         'data': [[0, 0]],
+                        'yAxisIndex': 0,
                         'symbolSize': 5
+                    },
+                    {
+                        'type': 'line',
+                        'data': [[0, 0]],
+                        'symbolSize': 5,
+                        'yAxisIndex': 1,
+                        'color': 'red'
                     }]
                 })
   
