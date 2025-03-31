@@ -419,15 +419,6 @@ void telemetry_generate()
   IMU["cal"].add(op_data.imu.accel_calibration_status);
   IMU["cal"].add(op_data.imu.mag_calibration_status);
 
-  // IMU["last_updated"] = op_data.imu.last_update_time;
-  // IMU["n_updates"] = op_data.imu.n_updates_counter;
-  
-  // JsonObject IMU_calibration = IMU["cal"].to<JsonObject>();
-  // IMU_calibration["sys"] = op_data.imu.system_calibration_status;
-  // IMU_calibration["gryo"] = op_data.imu.gryo_calibration_status;
-  // IMU_calibration["accel"] = op_data.imu.accel_calibration_status;
-  // IMU_calibration["mag"] = op_data.imu.mag_calibration_status;
-
   IMU["euler"].add(op_data.imu.euler_heading);
   IMU["euler"].add(op_data.imu.euler_pitch);
   IMU["euler"].add(op_data.imu.euler_roll);
@@ -440,22 +431,22 @@ void telemetry_generate()
   CAR["servo_angle"] = op_data.car.servo_angle;
   CAR["mode"] = op_data.car.mode;
   
-  if (op_data.car.mode == CAR_MODE_MANUAL)
-  {
-    // CAR["manual_mode"]["left_speed"] = op_data.car.mm_data.mm_left_speed;
-    // CAR["manual_mode"]["right_speed"] = op_data.car.mm_data.mm_right_speed;
-    CAR["manual_mode"]["duration"] = op_data.car.mm_data.mm_duration;
-  }
-  else if (op_data.car.mode == CAR_MODE_HEADING_KEEP)
-  {
-    CAR["tgt_heading"] = op_data.car.hk_data.target_heading;
-  }
-  else if (op_data.car.mode == CAR_MODE_AUTO)
-  {
-    // CAR["auto_mode"]["step"] = op_data.car.am_data.step;
-    // CAR["auto_mode"]["range_infront"] = op_data.car.am_data.range_infront;
-    CAR["auto_mode"]["tgt_heading"] = op_data.car.am_data.target_heading_absuolute;
-  }
+  // if (op_data.car.mode == CAR_MODE_MANUAL)
+  // {
+  //   // CAR["manual_mode"]["left_speed"] = op_data.car.mm_data.mm_left_speed;
+  //   // CAR["manual_mode"]["right_speed"] = op_data.car.mm_data.mm_right_speed;
+  //   CAR["manual_mode"]["duration"] = op_data.car.mm_data.mm_duration;
+  // }
+  // else if (op_data.car.mode == CAR_MODE_HEADING_KEEP)
+  // {
+  //   CAR["tgt_heading"] = op_data.car.hk_data.target_heading;
+  // }
+  // else if (op_data.car.mode == CAR_MODE_AUTO)
+  // {
+  //   // CAR["auto_mode"]["step"] = op_data.car.am_data.step;
+  //   // CAR["auto_mode"]["range_infront"] = op_data.car.am_data.range_infront;
+  //   CAR["auto_mode"]["tgt_heading"] = op_data.car.am_data.target_heading_absuolute;
+  // }
   
   
   // JsonObject CAR_speeds = CAR["speeds"].to<JsonObject>();
