@@ -24,13 +24,31 @@ void tracker_init()
 void tracker_update()
 {
     static int average_car_speed, _prev_average_speed;
+    // If the car is not moving, continue to transmit for the following counts and then stop
+    // transmitting until the car moves again
+    // This is to avoid flooding the tracker with data when the car is not moving
+    // The car is considered to be moving if the average speed is greater than 0
+    static uint8_t cont_transmit_counter = 5;
 
     if (op_data.sync.pulse_100ms)
     {
         average_car_speed = (op_data.car.left_speed + op_data.car.right_speed) / 2;
 
+
         // Skip adding any tracking points if the car has not moved
-        if ((average_car_speed == 0) and (_prev_average_speed == 0))
+        if ((average_car_speed == 0))
+        {
+            if (cont_transmit_counter > 0)
+            {
+                cont_transmit_counter--;
+            }
+        }
+        else
+        {
+            cont_transmit_counter = 5;
+        }
+
+        if (cont_transmit_counter == 0)
         {
             return;
         }
@@ -47,6 +65,12 @@ void tracker_update()
         // Store the linear acceleration in cm/s/s
         tp.lin_accel_x = lin_accel_x;
         tp.echo_range_cm = op_data.car.am_data.range_infront;
+
+        tp.status_flags = 0;
+        if (op_data.car.left_speed != 0 || op_data.car.right_speed != 0)
+        {
+            tp.status_flags |= 0x01; // motor on
+        }
         tracker_queue.push(&tp);
     }
 }
