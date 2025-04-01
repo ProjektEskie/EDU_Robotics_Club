@@ -14,6 +14,9 @@ void IMU_Init()
   op_data.imu.mySensor.setOperationMode(OPERATION_MODE_IMUPLUS);   // IMU Mode (no magnetometer)
   op_data.imu.mySensor.setUpdateMode(MANUAL);	
   op_data.imu.mySensor.disableAnyMotion();
+  op_data.imu.mySensor.writeAccelConfig(ACCEL_RANGE_2G, ACCEL_BW_15_63HZ, ACCEL_NORMAL);
+  op_data.imu.mySensor.updateAccelConfig();
+
 
   op_data.imu.euler_heading = 0;
   op_data.imu.euler_pitch = 0;
@@ -51,7 +54,7 @@ void IMU_update()
     op_data.imu.euler_roll = op_data.imu.mySensor.readEulerRoll();
     op_data.imu.euler_pitch = op_data.imu.mySensor.readEulerPitch() * -1.0;
 
-    op_data.imu.linaccel_x = op_data.imu.mySensor.readLinearAccelX();
+    op_data.imu.linaccel_x = op_data.imu.mySensor.readLinearAccelX() * -1.0;
     op_data.imu.linaccel_y = op_data.imu.mySensor.readLinearAccelY();
     op_data.imu.linaccel_z = op_data.imu.mySensor.readLinearAccelZ();
   }
