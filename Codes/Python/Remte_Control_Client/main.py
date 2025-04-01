@@ -616,7 +616,7 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                     }
                     ],
                     'series': [{
-                        'type': 'scatter',
+                        'type': 'line',
                         'data': [[0, 0]],
                         'yAxisIndex': 0,
                         'symbolSize': 5
