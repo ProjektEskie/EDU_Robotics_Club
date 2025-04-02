@@ -14,8 +14,6 @@ void IMU_Init()
   op_data.imu.mySensor.setOperationMode(OPERATION_MODE_IMUPLUS);   // IMU Mode (no magnetometer)
   op_data.imu.mySensor.setUpdateMode(MANUAL);	
   op_data.imu.mySensor.disableAnyMotion();
-  op_data.imu.mySensor.writeAccelConfig(ACCEL_RANGE_2G, ACCEL_BW_15_63HZ, ACCEL_NORMAL);
-  op_data.imu.mySensor.updateAccelConfig();
 
 
   op_data.imu.euler_heading = 0;
