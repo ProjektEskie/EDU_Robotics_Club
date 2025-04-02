@@ -6,6 +6,8 @@
 #include "tracker.hpp"
 #include "helpers.hpp"
 
+#define _CONT_TRANSMIT_COUNTER 10
+
 extern operation_data op_data;
 extern cppQueue tracker_queue;
 
@@ -28,7 +30,7 @@ void tracker_update()
     // transmitting until the car moves again
     // This is to avoid flooding the tracker with data when the car is not moving
     // The car is considered to be moving if the average speed is greater than 0
-    static uint8_t cont_transmit_counter = 5;
+    static uint8_t cont_transmit_counter = _CONT_TRANSMIT_COUNTER;
 
     if (op_data.sync.pulse_100ms)
     {
@@ -45,7 +47,7 @@ void tracker_update()
         }
         else
         {
-            cont_transmit_counter = 5;
+            cont_transmit_counter = _CONT_TRANSMIT_COUNTER;
         }
 
         if (cont_transmit_counter == 0)
@@ -70,6 +72,11 @@ void tracker_update()
         if (op_data.car.left_speed != 0 || op_data.car.right_speed != 0)
         {
             tp.status_flags |= 0x01; // motor on
+        }
+        // Ranging data is only valid if the car is in auto mode, data is stale otherwise
+        if (op_data.car.mode == CAR_MODE_AUTO)
+        {
+            tp.status_flags |= 0x02; // ranging sensor valid
         }
         tracker_queue.push(&tp);
     }
