@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 480
-VERSION_STR = '2.13'
+VERSION_STR = '2.14'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -96,7 +96,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     for i in range(n_tracker_points):
                         offset = fixed_part_size + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
                         try:
-                            _xy, linaccel, r = struct.unpack_from(tracker_data_format, data, offset)
+                            _xy, linaccel, status = struct.unpack_from(tracker_data_format, data, offset)
                             # x position is stored as the upper 16 bits of the first integer, y position is stored as the lower 16 bits of the first integer
                             x = _xy >> 16  # Extract the upper 16 bits for x
                             y = _xy & 0xFFFF  # Extract the lower 16 bits for y
@@ -104,7 +104,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                             x = float(x) / 10.0  # 0.1 deg to degree
                             y = float(y) / 10.0  # mm to cm
                             linaccel = float(linaccel) / 100.0  # cm/s^2 to m/s^2
-                            tracker_data.append((x, y, r, linaccel))
+                            tracker_data.append((x, y, status, linaccel))
                         except struct.error as e:
                             logger.error("Error unpacking tracker data at index %d: %s", i, e)
                             continue
@@ -377,11 +377,19 @@ def backend_update():
                     track_point_xy = [x, y]
                     tracker_chart.options['series'][0]['data'].append(track_point_xy)
                     
-                    last_range = range_chart.options['series'][0]['data'][-1]
-                    range_point = [last_range[0] + 1, tracking_point[2]]
-                    last_accel = range_chart.options['series'][1]['data'][-1]
-                    range_point_accel = [last_accel[0] + 1, tracking_point[3]]
-                    range_chart.options['series'][0]['data'].append(range_point)
+                    sample_number = max(range_chart.options['series'][0]['data'][-1][0],
+                                        range_chart.options['series'][1]['data'][-1][0])
+
+                    range_point = [sample_number + 1, tracking_point[2]]
+                    range_point_accel = [sample_number+ 1, tracking_point[3]]
+
+                    # Only add echo point if it is valid
+                    status_byte = tracking_point[2]
+                    # echo is valid if bit 1 is set
+                    if (status_byte & 0x02):
+                        # echo is valid, add to the chart
+                        range_chart.options['series'][0]['data'].append(range_point)
+
                     range_chart.options['series'][1]['data'].append(range_point_accel)
                     
                 tracker_chart.update()
@@ -605,6 +613,7 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                         'type': 'value',
                         'name': 'Acceleration',
                         'nameLocation': 'middle',
+                        'color': 'purple',
                         'min': -2,
                         'max': 2,
                         'scale': True,
@@ -624,7 +633,7 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                     {
                         'type': 'line',
                         'data': [[0, 0]],
-                        'symbolSize': 5,
+                        'symbolSize': 2,
                         'yAxisIndex': 1,
                         'color': 'red'
                     }]
