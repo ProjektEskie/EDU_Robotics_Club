@@ -583,13 +583,12 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                 comm_text_input.on('keydown.up', backend_comm_text_prev_message)
 
 
-with ui.grid(columns='2fr 2fr').classes('w-full gap-0'):
+with ui.grid(columns='4fr 1fr').classes('w-full gap-0'):
             
     with ui.card() as tracker_window:
         tracker_window.tight()
         tracker_window.classes('w-full')
 
-            
         tracker_chart = ui.echart({
             'title': {
                 'text': 'Tracker Data'
