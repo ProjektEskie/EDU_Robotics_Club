@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 480
-VERSION_STR = '2.14'
+VERSION_STR = '2.15'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -588,6 +588,12 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                     'title': {
                         'text': 'Ranging Data'
                     },
+                    'tooltip': {
+                        'trigger': 'item',
+                        'axisPointer': {
+                            'type': 'cross'
+                        }
+                    },
                     'xAxis': {
                         'type': 'value',
                         'name': 'Sample Number',
@@ -626,12 +632,14 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
                     ],
                     'series': [{
                         'type': 'line',
+                        'name': 'Ranging',
                         'data': [[0, 0]],
                         'yAxisIndex': 0,
                         'symbolSize': 5
                     },
                     {
                         'type': 'line',
+                        'name': 'Acceleration',
                         'data': [[0, 0]],
                         'symbolSize': 2,
                         'yAxisIndex': 1,
