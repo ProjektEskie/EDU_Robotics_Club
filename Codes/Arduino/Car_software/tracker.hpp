@@ -14,6 +14,7 @@ typedef struct _track_point
     // the remaining high bits are spare
     uint8_t echo_range_cm;
     uint8_t status_flags;  // bit 0: motor on/off 
+                           // bit 1: Ranging sensor valid
     uint8_t spare_bytes[2];
 } track_point;
 
