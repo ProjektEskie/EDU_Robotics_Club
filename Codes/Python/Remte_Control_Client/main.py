@@ -516,6 +516,7 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
     with ui.tabs().classes('w-full') as tabs:
         vis = ui.tab('Data')
         raw = ui.tab('Telemetry')
+        cli = ui.tab('CLI')
         
     with ui.tab_panels(tabs, value=vis).classes('w-full'):
         with ui.tab_panel(vis):
@@ -547,109 +548,7 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
             telemetry_table = ui.table(columns=telemetry_table_columns, rows=telemetry_table_rows, row_key='field')
             telemetry_table.classes('w-full')
             telemetry_table.style('font-size: 75%;')
-            
-            ui.separator()
-            
-            with ui.card() as tracker_window:
-                tracker_window.tight()
-                tracker_window.classes('w-full')
-
-                    
-                tracker_chart = ui.echart({
-                    'title': {
-                        'text': 'Tracker Data'
-                    },
-                    'xAxis': {
-                        'type': 'value',
-                        'name': 'X (cm)',
-                        'nameLocation': 'middle',
-                        'scale': True,
-                        'axisLabel': {
-                            'formatter': '{value}'
-                        },
-                    },
-                    'yAxis': {
-                        'type': 'value',
-                        'name': 'Y (cm)',
-                        'nameLocation': 'middle',
-                        'scale': True,
-                        'axisLabel': {
-                            'formatter': '{value}'
-                        },
-                    },
-                    'series': [{
-                        'type': 'scatter',
-                        'data': [[0, 0]],
-                        'symbolSize': 5
-                    }]
-                })
-                
-                range_chart = ui.echart({
-                    'title': {
-                        'text': 'Ranging Data'
-                    },
-                    'tooltip': {
-                        'trigger': 'item',
-                        'axisPointer': {
-                            'type': 'cross'
-                        }
-                    },
-                    'xAxis': {
-                        'type': 'value',
-                        'name': 'Sample Number',
-                        'nameLocation': 'middle',
-                        'scale': True,
-                        'axisLabel': {
-                            'formatter': '{value}'
-                        },
-                    },
-                    'yAxis': [
-                        {
-                        'type': 'value',
-                        'name': 'Y (cm)',
-                        'nameLocation': 'middle',
-                        'min': 0,
-                        'max': 100,
-                        'scale': True,
-                        'axisLabel': {
-                            'formatter': '{value}'
-                        },
-                    },
-                    {
-                        'type': 'value',
-                        'name': 'Acceleration',
-                        'nameLocation': 'middle',
-                        'color': 'purple',
-                        'min': -2,
-                        'max': 2,
-                        'scale': True,
-                        'alignTicks': True,
-                        'axisLabel': {
-                            'formatter': '{value}'
-                        },
-                        'position': 'right',
-                    }
-                    ],
-                    'series': [{
-                        'type': 'line',
-                        'name': 'Ranging',
-                        'data': [[0, 0]],
-                        'yAxisIndex': 0,
-                        'symbolSize': 5
-                    },
-                    {
-                        'type': 'line',
-                        'name': 'Acceleration',
-                        'data': [[0, 0]],
-                        'symbolSize': 2,
-                        'yAxisIndex': 1,
-                        'color': 'red'
-                    }]
-                })
-  
-                with ui.card_section():
-                    ui.button('Clear plot / Re-Orient', on_click=backend_clear_tracker_click)
-                    
+                   
             ui.separator()
             
             with ui.card() as data_window:
@@ -667,22 +566,125 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
             json_view = ui.json_editor({'content': {'json': {}}})
             json_view.classes(('w-fit h-fit'))
 
+        with ui.tab_panel(cli):
+            ui.separator()
+            ui.markdown('###Command Line Interface')
+            with ui.card() as comm_window:
+                comm_window.tight()
+                comm_window.classes('w-full bg-gray-100')
+                with ui.card_section():
+                    ui.label('Communication Window')
+                comm_log = ui.log(max_lines=100)
+                comm_log.classes('w-full')
+                comm_log.style('font-size: 75%; white-space: pre-wrap;')
+                comm_text_input = ui.input(label='Enter commands here:')
+                comm_text_input.classes('w-full h-20 bg-gray-300')
+                comm_text_input.on('keydown.enter', backend_send_msg)
+                comm_text_input.on('keydown.up', backend_comm_text_prev_message)
 
 
-    
-with ui.card() as comm_window:
-    comm_window.tight()
-    comm_window.classes('w-11/12 bg-gray-100')
-    with ui.card_section():
-        ui.label('Communication Window')
-    comm_log = ui.log(max_lines=100)
-    comm_log.classes('w-full h-3/12')
-    comm_log.style('font-size: 75%;')
-    comm_text_input = ui.input(label='Enter commands here:')
-    comm_text_input.classes('w-full h-20 bg-gray-300')
-    comm_text_input.on('keydown.enter', backend_send_msg)
-    comm_text_input.on('keydown.up', backend_comm_text_prev_message)
-    
+with ui.grid(columns='2fr 2fr').classes('w-full gap-0'):
+            
+    with ui.card() as tracker_window:
+        tracker_window.tight()
+        tracker_window.classes('w-full')
+
+            
+        tracker_chart = ui.echart({
+            'title': {
+                'text': 'Tracker Data'
+            },
+            'xAxis': {
+                'type': 'value',
+                'name': 'X (cm)',
+                'nameLocation': 'middle',
+                'scale': True,
+                'axisLabel': {
+                    'formatter': '{value}'
+                },
+            },
+            'yAxis': {
+                'type': 'value',
+                'name': 'Y (cm)',
+                'nameLocation': 'middle',
+                'scale': True,
+                'axisLabel': {
+                    'formatter': '{value}'
+                },
+            },
+            'series': [{
+                'type': 'scatter',
+                'data': [[0, 0]],
+                'symbolSize': 5
+            }]
+        })
+        
+        range_chart = ui.echart({
+            'title': {
+                'text': 'Ranging Data'
+            },
+            'tooltip': {
+                'trigger': 'item',
+                'axisPointer': {
+                    'type': 'cross'
+                }
+            },
+            'xAxis': {
+                'type': 'value',
+                'name': 'Sample Number',
+                'nameLocation': 'middle',
+                'scale': True,
+                'axisLabel': {
+                    'formatter': '{value}'
+                },
+            },
+            'yAxis': [
+                {
+                'type': 'value',
+                'name': 'Y (cm)',
+                'nameLocation': 'middle',
+                'min': 0,
+                'max': 100,
+                'scale': True,
+                'axisLabel': {
+                    'formatter': '{value}'
+                },
+            },
+            {
+                'type': 'value',
+                'name': 'Acceleration',
+                'nameLocation': 'middle',
+                'color': 'purple',
+                'min': -2,
+                'max': 2,
+                'scale': True,
+                'alignTicks': True,
+                'axisLabel': {
+                    'formatter': '{value}'
+                },
+                'position': 'right',
+            }
+            ],
+            'series': [{
+                'type': 'line',
+                'name': 'Ranging',
+                'data': [[0, 0]],
+                'yAxisIndex': 0,
+                'symbolSize': 5
+            },
+            {
+                'type': 'line',
+                'name': 'Acceleration',
+                'data': [[0, 0]],
+                'symbolSize': 2,
+                'yAxisIndex': 1,
+                'color': 'red'
+            }]
+        })
+
+        with ui.card_section():
+            ui.button('Clear plot / Re-Orient', on_click=backend_clear_tracker_click)
+
 ui.separator()  
 
 with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
