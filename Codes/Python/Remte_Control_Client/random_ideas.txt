@@ -1,0 +1,46 @@
+def _not_sure_if_to_keep():
+    with ui.card() as flowchart_card:
+        flowchart_card.tight()
+        flowchart_card.classes('w-11/12 bg-purple-200')
+        flowchart = ui.echart({
+            'title': {
+                'text': 'CAR_auto_mode Flowchart',
+                'left': 'center'
+            },
+            'tooltip': {
+                'trigger': 'item',
+                'formatter': '{b}'
+            },
+            'series': [
+                {
+                    'type': 'graph',
+                    'layout': 'none',  # Manual positioning
+                    'roam': True,
+                    'label': {
+                        'show': True
+                    },
+                    'edgeSymbol': ['circle'],
+                    'edgeSymbolSize': [4, 10],
+                    'data': [
+                        {'name': 'Start', 'symbolSize': 15, 'x': 100, 'y': 150},  # Moved down by 100
+                        {'name': 'Check is_new_mode', 'symbolSize': 15, 'x': 100, 'y': 250},  # Moved down by 100
+                        {'name': 'CAR_AUTO_INIT', 'symbolSize': 15, 'x': 100, 'y': 350},  # Moved down by 100
+                        {'name': 'CAR_AUTO_GOTO_HEADING', 'symbolSize': 15, 'x': 100, 'y': 450},  # Moved down by 100
+                        {'name': 'CAR_AUTO_LINEAR_TRAVEL', 'symbolSize': 15, 'x': 100, 'y': 550},  # Moved down by 100
+                        {'name': 'CAR_AUTO_DELAY_START', 'symbolSize': 15, 'x': 100, 'y': 650},  # Moved down by 100
+                        {'name': 'CAR_AUTO_DONE', 'symbolSize': 15, 'x': 100, 'y': 750},  # Moved down by 100
+                        {'name': 'End', 'symbolSize': 15, 'x': 100, 'y': 850}  # Moved down by 100
+                    ],
+                    'links': [
+                        {'source': 'Start', 'target': 'Check is_new_mode'},
+                        {'source': 'Check is_new_mode', 'target': 'CAR_AUTO_INIT', 'label': {'formatter': 'if true'}},
+                        {'source': 'CAR_AUTO_INIT', 'target': 'CAR_AUTO_GOTO_HEADING'},
+                        {'source': 'CAR_AUTO_GOTO_HEADING', 'target': 'CAR_AUTO_LINEAR_TRAVEL', 'label': {'formatter': 'if heading reached'}},
+                        {'source': 'CAR_AUTO_LINEAR_TRAVEL', 'target': 'CAR_AUTO_DONE', 'label': {'formatter': 'if complete'}},
+                        {'source': 'CAR_AUTO_LINEAR_TRAVEL', 'target': 'CAR_AUTO_DELAY_START', 'label': {'formatter': 'if obstacle detected'}},
+                        {'source': 'CAR_AUTO_DELAY_START', 'target': 'CAR_AUTO_DONE'},
+                        {'source': 'CAR_AUTO_DONE', 'target': 'End'}
+                    ]
+                }
+            ]
+        })
