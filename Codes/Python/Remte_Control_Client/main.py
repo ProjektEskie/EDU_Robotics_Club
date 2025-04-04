@@ -518,7 +518,7 @@ def create_data_window():
         tracker_window.classes('w-full')
         range_chart = ui.echart({
             'title': {'text': 'Ranging and Acceleration Data'},
-            'tooltip': {'axisPointer': {'type': 'cross'}},
+            'tooltip': {'trigger': 'item', 'axisPointer': {'type': 'cross'}},
             'xAxis': {
                 'type': 'value',
                 'name': 'Sample Number',
@@ -557,7 +557,7 @@ def create_data_window():
 
         state_chart = ui.echart({
             'title': {'text': 'Auto Mode State Data'},
-            'tooltip': {'axisPointer': {'type': 'cross'}},
+            'tooltip': {'trigger': 'item', 'axisPointer': {'type': 'cross'}},
             'xAxis': {
                 'type': 'value',
                 'name': 'Sample Number',
