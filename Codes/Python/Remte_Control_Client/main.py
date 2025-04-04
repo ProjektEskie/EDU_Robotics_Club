@@ -472,13 +472,14 @@ def create_comm_window():
 
 
 def create_tracker_window():
-    global tracker_chart, range_chart
+    global tracker_chart
     with ui.card() as tracker_window:
         tracker_window.tight()
         tracker_window.classes('w-full')
 
         tracker_chart = ui.echart({
             'title': {'text': 'Tracker Data'},
+            'tooltip': {'trigger': 'item', 'axisPointer': {'type': 'cross'}},
             'xAxis': {
                 'type': 'value',
                 'name': 'X (cm)',
@@ -496,9 +497,20 @@ def create_tracker_window():
             'series': [{'type': 'scatter', 'data': [[0, 0]], 'symbolSize': 5}],
         })
         
+
+
+        with ui.card_section():
+            ui.button('Clear plot / Re-Orient', on_click=backend_clear_tracker_click)
+    return tracker_window
+
+def create_data_window():
+    global range_chart
+    with ui.card() as tracker_window:
+        tracker_window.tight()
+        tracker_window.classes('w-full')
         range_chart = ui.echart({
             'title': {'text': 'Ranging Data'},
-            'tooltip': {'trigger': 'item', 'axisPointer': {'type': 'cross'}},
+            'tooltip': {'axisPointer': {'type': 'cross'}},
             'xAxis': {
                 'type': 'value',
                 'name': 'Sample Number',
@@ -521,8 +533,8 @@ def create_tracker_window():
                     'name': 'Acceleration',
                     'nameLocation': 'middle',
                     'color': 'purple',
-                    'min': -2,
-                    'max': 2,
+                    'min': -3,
+                    'max': 3,
                     'scale': True,
                     'alignTicks': True,
                     'axisLabel': {'formatter': '{value}'},
@@ -534,10 +546,6 @@ def create_tracker_window():
                 {'type': 'line', 'name': 'Acceleration', 'data': [[0, 0]], 'symbolSize': 2, 'yAxisIndex': 1, 'color': 'red'},
             ],
         })
-
-        with ui.card_section():
-            ui.button('Clear plot / Re-Orient', on_click=backend_clear_tracker_click)
-    return tracker_window
 
 
 def create_auto_mode_card():
@@ -749,8 +757,9 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
             comm_window = create_comm_window()
 
 
-with ui.grid(columns='4fr 1fr').classes('w-full gap-0'):
+with ui.grid(columns='3fr 2fr').classes('w-full gap-0'):
     tracker_window = create_tracker_window()
+    data_window = create_data_window()
 
 ui.separator()  
 
