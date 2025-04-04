@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 480
-VERSION_STR = '2.15'
+VERSION_STR = '2.16'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -89,14 +89,14 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     
                     # Decode tracker data from the array part of the struct
                     tracker_data = []
-                    tracker_data_format = "<llB3x"  # Each tracker point consists of two integers, one byte and 3 padding bytes (x, y, r)
+                    tracker_data_format = "<llBB2x"  # Each tracker point consists of two integers, two byte and 2 padding bytes (x, y, r)
                     tracker_data_size = struct.calcsize(tracker_data_format)
                     fixed_part_size = struct.calcsize(struct_format)  # Size of the fixed part of the struct
 
                     for i in range(n_tracker_points):
                         offset = fixed_part_size + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
                         try:
-                            _xy, linaccel, status = struct.unpack_from(tracker_data_format, data, offset)
+                            _xy, linaccel, echo, status = struct.unpack_from(tracker_data_format, data, offset)
                             # x position is stored as the upper 16 bits of the first integer, y position is stored as the lower 16 bits of the first integer
                             x = _xy >> 16  # Extract the upper 16 bits for x
                             y = _xy & 0xFFFF  # Extract the lower 16 bits for y
@@ -104,7 +104,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                             x = float(x) / 10.0  # 0.1 deg to degree
                             y = float(y) / 10.0  # mm to cm
                             linaccel = float(linaccel) / 100.0  # cm/s^2 to m/s^2
-                            tracker_data.append((x, y, status, linaccel))
+                            tracker_data.append((x, y, status, linaccel, echo))
                         except struct.error as e:
                             logger.error("Error unpacking tracker data at index %d: %s", i, e)
                             continue
@@ -293,6 +293,7 @@ def backend_clear_tracker_click():
     tracker_chart.update()
     range_chart.options['series'][0]['data'] = [[0, 0]]
     range_chart.options['series'][1]['data'] = [[0, 0]]
+    state_chart.options['series'][0]['data'] = [[0, 0]]
     range_chart.update()
     
 def backend_update():
@@ -340,12 +341,6 @@ def backend_update():
                 ranging_chart.update()
             elif data_packet[0] == 'TELE_AND_TRACK':
                 telemetry_data = data_packet[1]
-                # telemetry_table_rows = [
-                #     {'field': 'System Time', 'value': 0},
-                #     {'field': 'Left Speed', 'value': 0},
-                #     {'field': 'Right Speed', 'value': 0},
-                #     {'field': 'Heading', 'value': 0},
-                # ]
                 telemetry_table_rows[0]['value'] = telemetry_data['sys_time']
                 telemetry_table_rows[1]['value'] = telemetry_data['left_speed']
                 telemetry_table_rows[2]['value'] = telemetry_data['right_speed']
@@ -380,20 +375,31 @@ def backend_update():
                     sample_number = max(range_chart.options['series'][0]['data'][-1][0],
                                         range_chart.options['series'][1]['data'][-1][0])
 
-                    range_point = [sample_number + 1, tracking_point[2]]
+                    range_point = [sample_number + 1, tracking_point[4]]
                     range_point_accel = [sample_number+ 1, tracking_point[3]]
 
                     # Only add echo point if it is valid
                     status_byte = tracking_point[2]
+
+
+                    # decode bits 3 to 7 as a uint8
+                    auto_mode_state = (status_byte & 0xF8) >> 3
+
+                    # if bit 2 is set, the car is in auto mode
+                    if (status_byte & 0x04):
+                        # car is in auto mode
+                        state_point = [sample_number + 1, auto_mode_state]
+                        state_chart.options['series'][0]['data'].append(state_point)
+
                     # echo is valid if bit 1 is set
                     if (status_byte & 0x02):
                         # echo is valid, add to the chart
                         range_chart.options['series'][0]['data'].append(range_point)
-
                     range_chart.options['series'][1]['data'].append(range_point_accel)
                     
                 tracker_chart.update()
                 range_chart.update()
+                state_chart.update()
 
         if (not tq.empty()):
             glob_model['data'] = tq.get()
@@ -496,6 +502,8 @@ def create_tracker_window():
             },
             'series': [{'type': 'scatter', 'data': [[0, 0]], 'symbolSize': 5}],
         })
+        tracker_chart.classes('w-full h-full')
+        
         
 
 
@@ -504,12 +512,12 @@ def create_tracker_window():
     return tracker_window
 
 def create_data_window():
-    global range_chart
+    global range_chart, state_chart
     with ui.card() as tracker_window:
         tracker_window.tight()
         tracker_window.classes('w-full')
         range_chart = ui.echart({
-            'title': {'text': 'Ranging Data'},
+            'title': {'text': 'Ranging and Acceleration Data'},
             'tooltip': {'axisPointer': {'type': 'cross'}},
             'xAxis': {
                 'type': 'value',
@@ -547,6 +555,29 @@ def create_data_window():
             ],
         })
 
+        state_chart = ui.echart({
+            'title': {'text': 'Auto Mode State Data'},
+            'tooltip': {'axisPointer': {'type': 'cross'}},
+            'xAxis': {
+                'type': 'value',
+                'name': 'Sample Number',
+                'nameLocation': 'middle',
+                'scale': True,
+                'axisLabel': {'formatter': '{value}'},
+            },
+            'yAxis': [
+                {
+                    'type': 'value',
+                    'name': 'State Number',
+                    'nameLocation': 'middle',
+                    'scale': True,
+                    'axisLabel': {'formatter': '{value}'},
+                },
+            ],
+            'series': [
+                {'type': 'line', 'name': 'State', 'data': [[0, 0]], 'yAxisIndex': 0, 'symbolSize': 5},
+            ],
+        })
 
 def create_auto_mode_card():
     global auto_control_heading_slider, auto_control_speed_slider, auto_control_duration_slider
@@ -757,7 +788,7 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
             comm_window = create_comm_window()
 
 
-with ui.grid(columns='3fr 2fr').classes('w-full gap-0'):
+with ui.grid(columns='2fr 2fr').classes('w-full gap-0'):
     tracker_window = create_tracker_window()
     data_window = create_data_window()
 
