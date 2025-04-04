@@ -291,9 +291,9 @@ def backend_clear_tracker_click():
     tracker_chart.options['series'][0]['data'] = [[0, 0]]
     glob_model['car_heading_tracking_latch'] = glob_model['car_heading']
     tracker_chart.update()
-    range_chart.options['series'][0]['data'] = [[0, 0]]
-    range_chart.options['series'][1]['data'] = [[0, 0]]
-    state_chart.options['series'][0]['data'] = [[0, 0]]
+    range_chart.options['series'][0]['data'] = [[0, None]]
+    range_chart.options['series'][1]['data'] = [[0, None]]
+    state_chart.options['series'][0]['data'] = [[0, None]]
     range_chart.update()
     
 def backend_update():
@@ -389,7 +389,9 @@ def backend_update():
                     if (status_byte & 0x04):
                         # car is in auto mode
                         state_point = [sample_number + 1, auto_mode_state]
-                        state_chart.options['series'][0]['data'].append(state_point)
+                    else:
+                        state_point = [sample_number + 1, None]
+                    state_chart.options['series'][0]['data'].append(state_point)
 
                     # echo is valid if bit 1 is set
                     if (status_byte & 0x02):
@@ -550,8 +552,8 @@ def create_data_window():
                 },
             ],
             'series': [
-                {'type': 'line', 'name': 'Ranging', 'data': [[0, 0]], 'yAxisIndex': 0, 'symbolSize': 5},
-                {'type': 'line', 'name': 'Acceleration', 'data': [[0, 0]], 'symbolSize': 2, 'yAxisIndex': 1, 'color': 'red'},
+                {'type': 'line', 'name': 'Ranging', 'data': [[0, None]], 'yAxisIndex': 0, 'symbolSize': 5},
+                {'type': 'line', 'name': 'Acceleration', 'data': [[0, None]], 'symbolSize': 2, 'yAxisIndex': 1, 'color': 'red'},
             ],
         })
 
@@ -575,7 +577,7 @@ def create_data_window():
                 },
             ],
             'series': [
-                {'type': 'line', 'name': 'State', 'data': [[0, 0]], 'yAxisIndex': 0, 'symbolSize': 5},
+                {'type': 'line', 'name': 'State', 'data': [[0, None]], 'yAxisIndex': 0, 'symbolSize': 5},
             ],
         })
 
