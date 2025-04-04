@@ -454,8 +454,185 @@ def backend_slow_update():
             is_connecting_chip.set_visibility(False)
             is_connected_chip.set_visibility(False)
 
+def create_comm_window():
+    global comm_log, comm_text_input
+    with ui.card() as comm_window:
+        comm_window.tight()
+        comm_window.classes('w-full bg-gray-100')
+        with ui.card_section():
+            ui.label('Communication Window')
+        comm_log = ui.log(max_lines=100)
+        comm_log.classes('w-full')
+        comm_log.style('font-size: 75%; white-space: pre-wrap;')
+        comm_text_input = ui.input(label='Enter commands here:')
+        comm_text_input.classes('w-full h-20 bg-gray-300')
+        comm_text_input.on('keydown.enter', backend_send_msg)
+        comm_text_input.on('keydown.up', backend_comm_text_prev_message)
+    return comm_window
 
 
+def create_tracker_window():
+    global tracker_chart, range_chart
+    with ui.card() as tracker_window:
+        tracker_window.tight()
+        tracker_window.classes('w-full')
+
+        tracker_chart = ui.echart({
+            'title': {'text': 'Tracker Data'},
+            'xAxis': {
+                'type': 'value',
+                'name': 'X (cm)',
+                'nameLocation': 'middle',
+                'scale': True,
+                'axisLabel': {'formatter': '{value}'},
+            },
+            'yAxis': {
+                'type': 'value',
+                'name': 'Y (cm)',
+                'nameLocation': 'middle',
+                'scale': True,
+                'axisLabel': {'formatter': '{value}'},
+            },
+            'series': [{'type': 'scatter', 'data': [[0, 0]], 'symbolSize': 5}],
+        })
+        
+        range_chart = ui.echart({
+            'title': {'text': 'Ranging Data'},
+            'tooltip': {'trigger': 'item', 'axisPointer': {'type': 'cross'}},
+            'xAxis': {
+                'type': 'value',
+                'name': 'Sample Number',
+                'nameLocation': 'middle',
+                'scale': True,
+                'axisLabel': {'formatter': '{value}'},
+            },
+            'yAxis': [
+                {
+                    'type': 'value',
+                    'name': 'Y (cm)',
+                    'nameLocation': 'middle',
+                    'min': 0,
+                    'max': 100,
+                    'scale': True,
+                    'axisLabel': {'formatter': '{value}'},
+                },
+                {
+                    'type': 'value',
+                    'name': 'Acceleration',
+                    'nameLocation': 'middle',
+                    'color': 'purple',
+                    'min': -2,
+                    'max': 2,
+                    'scale': True,
+                    'alignTicks': True,
+                    'axisLabel': {'formatter': '{value}'},
+                    'position': 'right',
+                },
+            ],
+            'series': [
+                {'type': 'line', 'name': 'Ranging', 'data': [[0, 0]], 'yAxisIndex': 0, 'symbolSize': 5},
+                {'type': 'line', 'name': 'Acceleration', 'data': [[0, 0]], 'symbolSize': 2, 'yAxisIndex': 1, 'color': 'red'},
+            ],
+        })
+
+        with ui.card_section():
+            ui.button('Clear plot / Re-Orient', on_click=backend_clear_tracker_click)
+    return tracker_window
+
+
+def create_auto_mode_card():
+    global auto_control_heading_slider, auto_control_speed_slider, auto_control_duration_slider
+    with ui.card() as auto_card:
+        auto_card.tight()
+        auto_card.classes('w-11/12 bg-green-200')
+        with ui.card_section():
+            ui.markdown('###Auto Mode Settings')
+        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
+            ui.label('Heading')
+            auto_control_heading_slider = ui.slider(min=-180, max=180, step=1, value=0).props('label-always')
+            ui.label('Forward Speed')
+            auto_control_speed_slider = ui.slider(min=0, max=255, step=1, value=200).props('label-always')
+            ui.label('Duration (s)')
+            auto_control_duration_slider = ui.slider(min=0, max=10, step=0.2, value=2).props('label-always')
+        with ui.card_section():
+            ui.button('Execute!', on_click=backend_auto_mode_click)
+    return auto_card
+
+
+def create_front_sensor_card():
+    global servo_angle_slider
+    with ui.card() as front_sensor_card:
+        front_sensor_card.tight()
+        front_sensor_card.classes('w-11/12 h-80 bg-blue-200')
+        with ui.card_section():
+            ui.markdown('###Front Sensor')
+        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
+            ui.label('Sensor Angle')
+            servo_angle_slider = ui.slider(min=-90, max=90, step=1, value=0).props('label-always') \
+                .on('change', backend_slew_servo)
+        with ui.card_section():
+            ui.button('One Ping Only', on_click=backend_ping_click)
+    return front_sensor_card
+
+
+def create_manual_move_card():
+    global manual_control_left_slider, manual_control_right_slider, manual_control_duration_slider
+    with ui.card() as manual_move_card:
+        manual_move_card.tight()
+        manual_move_card.classes('w-11/12 h-80 bg-yellow-200')
+        with ui.card_section():
+            ui.markdown('###Manual control')
+        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
+            ui.label('Left Speed')
+            manual_control_left_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
+            ui.label('Right Speed')
+            manual_control_right_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
+            ui.label('Duration (ms)')
+            manual_control_duration_slider = ui.slider(min=0, max=5000, step=1, value=1000).props('label-always')
+        with ui.card_section():
+            ui.button('Execute!', on_click=backend_manual_move_click)
+    return manual_move_card
+
+
+def create_ranging_card():
+    global ranging_chart
+    with ui.card() as ranging_card:
+        ranging_card.tight()
+        ranging_card.classes('w-11/12 h-80 bg-blue-200')
+        ranging_chart = ui.echart({
+            'title': {'text': 'Ranging Data'},
+            'polar': {'radius': [5, '60%']},
+            'angleAxis': {
+                'type': 'category',
+                'data': ['-90°', '-60°', '-30°', '0°', '30°', '60°', '90°'],
+                'startAngle': 195,
+                'endAngle': -15
+            },
+            'radiusAxis': {'min': 0, 'max': 1},
+            'series': [
+                {'type': 'bar', 'data': [1, 1, 1, 1, 1, 1, 1], 'coordinateSystem': 'polar', 'stack': 'a'},
+                {'type': 'bar', 'data': ['-', '-', '-', '-', '-', '-', '-'], 'coordinateSystem': 'polar', 'stack': 'a', 'color': 'red'}
+            ]
+        })
+        with ui.card_section():
+            ui.button('Scan', on_click=backend_ranging_click)
+    return ranging_card
+
+
+def create_heading_card():
+    global car_direction_mode_sw, car_direction_label
+    with ui.card() as heading_card:
+        heading_card.tight()
+        heading_card.classes('w-11/12 bg-green-200')
+        with ui.card_section():
+            car_direction_mode_sw = ui.switch('Heading Control Mode', on_change=backend_car_direction_mode_sw_change)
+        joystick_direction = ui.joystick(color='green', size=50,
+                                         on_move=backend_car_direction_joystick_update,
+                                         on_end=backend_car_direction_joystick_set)
+        joystick_direction.classes('w-full h-full')
+        with ui.card_section():
+            car_direction_label = ui.label('Car not in heading mode')
+    return heading_card
 
 
 log_level = logging.INFO
@@ -569,224 +746,20 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
         with ui.tab_panel(cli):
             ui.separator()
             ui.markdown('###Command Line Interface')
-            with ui.card() as comm_window:
-                comm_window.tight()
-                comm_window.classes('w-full bg-gray-100')
-                with ui.card_section():
-                    ui.label('Communication Window')
-                comm_log = ui.log(max_lines=100)
-                comm_log.classes('w-full')
-                comm_log.style('font-size: 75%; white-space: pre-wrap;')
-                comm_text_input = ui.input(label='Enter commands here:')
-                comm_text_input.classes('w-full h-20 bg-gray-300')
-                comm_text_input.on('keydown.enter', backend_send_msg)
-                comm_text_input.on('keydown.up', backend_comm_text_prev_message)
+            comm_window = create_comm_window()
 
 
 with ui.grid(columns='4fr 1fr').classes('w-full gap-0'):
-            
-    with ui.card() as tracker_window:
-        tracker_window.tight()
-        tracker_window.classes('w-full')
-
-        tracker_chart = ui.echart({
-            'title': {
-                'text': 'Tracker Data'
-            },
-            'xAxis': {
-                'type': 'value',
-                'name': 'X (cm)',
-                'nameLocation': 'middle',
-                'scale': True,
-                'axisLabel': {
-                    'formatter': '{value}'
-                },
-            },
-            'yAxis': {
-                'type': 'value',
-                'name': 'Y (cm)',
-                'nameLocation': 'middle',
-                'scale': True,
-                'axisLabel': {
-                    'formatter': '{value}'
-                },
-            },
-            'series': [{
-                'type': 'scatter',
-                'data': [[0, 0]],
-                'symbolSize': 5
-            }]
-        })
-        
-        range_chart = ui.echart({
-            'title': {
-                'text': 'Ranging Data'
-            },
-            'tooltip': {
-                'trigger': 'item',
-                'axisPointer': {
-                    'type': 'cross'
-                }
-            },
-            'xAxis': {
-                'type': 'value',
-                'name': 'Sample Number',
-                'nameLocation': 'middle',
-                'scale': True,
-                'axisLabel': {
-                    'formatter': '{value}'
-                },
-            },
-            'yAxis': [
-                {
-                'type': 'value',
-                'name': 'Y (cm)',
-                'nameLocation': 'middle',
-                'min': 0,
-                'max': 100,
-                'scale': True,
-                'axisLabel': {
-                    'formatter': '{value}'
-                },
-            },
-            {
-                'type': 'value',
-                'name': 'Acceleration',
-                'nameLocation': 'middle',
-                'color': 'purple',
-                'min': -2,
-                'max': 2,
-                'scale': True,
-                'alignTicks': True,
-                'axisLabel': {
-                    'formatter': '{value}'
-                },
-                'position': 'right',
-            }
-            ],
-            'series': [{
-                'type': 'line',
-                'name': 'Ranging',
-                'data': [[0, 0]],
-                'yAxisIndex': 0,
-                'symbolSize': 5
-            },
-            {
-                'type': 'line',
-                'name': 'Acceleration',
-                'data': [[0, 0]],
-                'symbolSize': 2,
-                'yAxisIndex': 1,
-                'color': 'red'
-            }]
-        })
-
-        with ui.card_section():
-            ui.button('Clear plot / Re-Orient', on_click=backend_clear_tracker_click)
+    tracker_window = create_tracker_window()
 
 ui.separator()  
 
 with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
-    with ui.card() as auto_card:
-        auto_card.tight()
-        auto_card.classes('w-11/12 bg-green-200')
-        with ui.card_section():
-            ui.markdown('###Auto Mode Settings')
-        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
-            ui.label('Heading')
-            auto_control_heading_slider = ui.slider(min=-180, max=180, step=1, value=0).props('label-always')
-            ui.label('Forward Speed')
-            auto_control_speed_slider = ui.slider(min=0, max=255, step=1, value=200).props('label-always')
-            ui.label('Duration (s)')
-            auto_control_duration_slider = ui.slider(min=0, max=10, step=0.2, value=2).props('label-always')
-        with ui.card_section():
-            ui.button('Execute!', on_click=backend_auto_mode_click)
-        
-
-    with ui.card() as front_sensor_card:
-        front_sensor_card.tight()
-        front_sensor_card.classes('w-11/12 h-80 bg-blue-200')
-        
-        with ui.card_section():
-            ui.markdown('###Front Sensor')
-            
-        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
-            ui.label('Sensor Angle')
-            servo_angle_slider = ui.slider(min=-90, max=90, step=1, value=0).props('label-always') \
-            .on('change', backend_slew_servo)
-            
-        with ui.card_section():
-            ui.button('One Ping Only', on_click=backend_ping_click)
-            
-    with ui.card() as manual_move_card:
-        manual_move_card.tight()
-        manual_move_card.classes('w-11/12 h-80 bg-yellow-200')
-        with ui.card_section():
-            ui.markdown('###Manual control')
-        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
-            ui.label('Left Speed')
-            manual_control_left_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
-            ui.label('Right Speed')
-            manual_control_right_slider = ui.slider(min=-255, max=255, step=1, value=200).props('label-always')
-            ui.label('Duration (ms)')
-            manual_control_duration_slider = ui.slider(min=0, max=5000, step=1, value=1000).props('label-always')       
-        with ui.card_section():
-            ui.button('Execute!', on_click=backend_manual_move_click)
-
-
-            
-    with ui.card() as ranging_card:
-        ranging_card.tight()
-        ranging_card.classes('w-11/12 h-80 bg-blue-200')
-
-        ranging_chart = ui.echart({
-            'title': {
-                'text': 'Ranging Data'
-            },
-            'polar': {
-                'radius': [5, '60%']
-            },
-            'angleAxis': {
-                'type': 'category',
-                'data': ['-90°', '-60°', '-30°', '0°', '30°', '60°', '90°'],
-                'startAngle': 195,
-                'endAngle': -15
-            },
-            'radiusAxis': {
-                'min': 0,
-                'max': 1
-            },
-            'series': [{
-                'type': 'bar',
-                'data': [1, 1, 1, 1, 1, 1, 1],
-                'coordinateSystem': 'polar',
-                'stack': 'a',
-            },{
-                'type': 'bar',
-                'data': ['-', '-', '-', '-', '-', '-', '-'],
-                'coordinateSystem': 'polar',
-                'stack': 'a',
-                'color': 'red'
-            }
-                       ]
-        })
-        
-        with ui.card_section():
-            ui.button('Scan', on_click=backend_ranging_click)
-      
-    with ui.card() as heading_card:
-        heading_card.tight()
-        heading_card.classes('w-11/12 bg-green-200')
-        with ui.card_section():
-            car_direction_mode_sw = ui.switch('Heading Control Mode',
-            on_change=backend_car_direction_mode_sw_change)
-        joystick_direction = ui.joystick(color='green', size=50,
-                                            on_move=backend_car_direction_joystick_update,
-                                            on_end=backend_car_direction_joystick_set)
-        joystick_direction.classes('w-full h-full')
-        with ui.card_section():
-            car_direction_label = ui.label('Car not in heading mode')
-            
+    auto_card = create_auto_mode_card()
+    front_sensor_card = create_front_sensor_card()
+    manual_move_card = create_manual_move_card()
+    ranging_card = create_ranging_card()
+    heading_card = create_heading_card()
 
 
 glob_model['is_ui_init'] = True
