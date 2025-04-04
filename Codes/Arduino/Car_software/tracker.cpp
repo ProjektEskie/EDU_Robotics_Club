@@ -17,7 +17,7 @@ extern cppQueue tracker_queue;
 // the car travels at speed of 1m/s when the power
 // level is 255, and 0m/s when the power level is 90.
 int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms);
-
+bool _should_transmit(int average_car_speed);
 void tracker_init()
 {
     tracker_queue.flush();
@@ -38,17 +38,23 @@ void tracker_update()
 
 
         // Skip adding any tracking points if the car has not moved
-        if ((average_car_speed == 0))
+        if (_should_transmit(average_car_speed))
         {
+
+            cont_transmit_counter = _CONT_TRANSMIT_COUNTER;
+        }
+        else
+        {
+            // If the car is not moving, continue to transmit for the following counts and then stop
+            // transmitting until the car moves again
+            // This is to avoid flooding the tracker with data when the car is not moving
+            // The car is considered to be moving if the average speed is greater than 0
             if (cont_transmit_counter > 0)
             {
                 cont_transmit_counter--;
             }
         }
-        else
-        {
-            cont_transmit_counter = _CONT_TRANSMIT_COUNTER;
-        }
+
 
         if (cont_transmit_counter == 0)
         {
@@ -78,6 +84,20 @@ void tracker_update()
         {
             tp.status_flags |= 0x02; // ranging sensor valid
         }
+
+        // The auto mode state is stored in the last 5 bits of the status flags
+        uint8_t auto_mode_state = (uint8_t)op_data.car.am_data.step;
+        if (auto_mode_state > 31)
+        {
+            auto_mode_state = 31;
+        }
+        tp.status_flags |= (auto_mode_state << 3); // auto mode state
+
+        // Set bit 2 to 1 if the car is in auto mode
+        if (op_data.car.mode == CAR_MODE_AUTO)
+        {
+            tp.status_flags |= 0x04; // auto mode
+        }
         tracker_queue.push(&tp);
     }
 }
@@ -89,4 +109,21 @@ int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms)
     speed_mps = ((float)average_car_speed / 255.0) * 0.6;
     distance_mm = (int)(speed_mps * interval_ms);
     return distance_mm;
+}
+
+bool _should_transmit(int average_car_speed)
+{
+    // If the car is not moving, continue to transmit for the following counts and then stop
+    // transmitting until the car moves again
+    // This is to avoid flooding the tracker with data when the car is not moving
+    // The car is considered to be moving if the average speed is greater than 0
+    if ((average_car_speed != 0) || (op_data.car.mode == CAR_MODE_AUTO))
+    // If the car is in auto mode, always transmit
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }

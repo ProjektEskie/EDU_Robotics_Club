@@ -80,7 +80,7 @@ typedef struct _car_point_and_go_mode_data
 
 typedef enum _car_auto_mode_steps
 {
-  CAR_AUTO_INIT,
+  CAR_AUTO_INIT = 0,
   CAR_AUTO_GOTO_HEADING,
   CAR_AUTO_LINEAR_TRAVEL,
   CAR_AUTO_OBSTACLE_DETECTED,
