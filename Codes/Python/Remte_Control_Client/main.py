@@ -397,6 +397,9 @@ def backend_update():
                     if (status_byte & 0x02):
                         # echo is valid, add to the chart
                         range_chart.options['series'][0]['data'].append(range_point)
+                    else:
+                        # echo is not valid, add a placeholder
+                        range_chart.options['series'][0]['data'].append([sample_number + 1, None])
                     range_chart.options['series'][1]['data'].append(range_point_accel)
                     
                 tracker_chart.update()
@@ -521,6 +524,12 @@ def create_data_window():
         range_chart = ui.echart({
             'title': {'text': 'Ranging and Acceleration Data'},
             'tooltip': {'trigger': 'item', 'axisPointer': {'type': 'cross'}},
+            'dataZoom': [
+                {
+                    'type': 'inside',
+                    'start': 0,
+                    }
+                ],
             'xAxis': {
                 'type': 'value',
                 'name': 'Sample Number',
@@ -560,6 +569,12 @@ def create_data_window():
         state_chart = ui.echart({
             'title': {'text': 'Auto Mode State Data'},
             'tooltip': {'trigger': 'item', 'axisPointer': {'type': 'cross'}},
+            'dataZoom': [
+                {
+                    'type': 'inside',
+                    'start': 0,
+                    }
+                ],
             'xAxis': {
                 'type': 'value',
                 'name': 'Sample Number',
