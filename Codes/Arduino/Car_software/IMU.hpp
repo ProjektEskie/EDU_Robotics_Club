@@ -4,11 +4,12 @@
 #include <arduino.h>
 #include "Arduino_NineAxesMotion.h"
 
+#define RELATIVE_MODE OPERATION_MODE_IMUPLUS
+#define ABSOLUTE_MODE OPERATION_MODE_NDOF
+
 typedef struct _imu_data
 {
   NineAxesMotion mySensor; 
-  uint32_t last_update_time;
-  uint32_t update_interval;
   uint16_t n_updates_counter;
 
   int system_calibration_status;
@@ -29,5 +30,6 @@ typedef struct _imu_data
 void IMU_Init();
 void IMU_update();
 void IMU_reset_n_updates_counter();
+void API_IMU_set_absolute_mode(bool is_absolute);
 
 #endif
