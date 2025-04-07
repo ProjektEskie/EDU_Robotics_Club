@@ -374,7 +374,6 @@ bool CAR_turn_to_heading(float target_heading)
 
   turn_speed = map(abs_diff, 0, 180, 150, 255);
 
-
   int angle_tolerance = 3;
 
   if (_dff > angle_tolerance)
