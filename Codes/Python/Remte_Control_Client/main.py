@@ -815,8 +815,8 @@ with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
     auto_card = create_auto_mode_card()
     front_sensor_card = create_front_sensor_card()
     manual_move_card = create_manual_move_card()
-    ranging_card = create_ranging_card()
     heading_card = create_heading_card()
+    ranging_card = create_ranging_card()
 
 
 glob_model['is_ui_init'] = True
