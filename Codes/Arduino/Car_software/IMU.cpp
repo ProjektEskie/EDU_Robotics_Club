@@ -30,7 +30,7 @@ void IMU_Init()
 
 void IMU_update()
 {
-  if (op_data.sync.pulse_50ms)
+  if (op_data.sync.pulse_10ms)
   {
     op_data.imu.n_updates_counter++;
 
