@@ -36,7 +36,7 @@ void IMU_update()
 
     op_data.imu.mySensor.updateEuler();        //Update the Euler data into the structure of the object
     
-    op_data.imu.mySensor.updateAccel();
+    // op_data.imu.mySensor.updateAccel();
     op_data.imu.mySensor.updateLinearAccel();
     
     op_data.imu.euler_heading = op_data.imu.mySensor.readEulerHeading();
