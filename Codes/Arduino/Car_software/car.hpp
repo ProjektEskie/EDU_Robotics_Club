@@ -82,6 +82,7 @@ typedef enum _car_auto_mode_steps
 {
   CAR_AUTO_INIT = 0,
   CAR_AUTO_GOTO_HEADING,
+  CAR_AUTO_HEADING_SETTLE,
   CAR_AUTO_LINEAR_TRAVEL,
   CAR_AUTO_OBSTACLE_DETECTED,
   CAR_ATUO_BRAKE_START,
@@ -108,6 +109,8 @@ typedef struct _car_auto_mode_data
   uint32_t forward_duration;
   int reverse_speed;
   uint32_t reverse_duration;
+  uint8_t _allow_heading_realignment;
+  uint32_t _heading_turn_complete_time;
   uint32_t _forward_start_time;
   uint32_t _reverse_start_time;
   uint32_t _turn_start_time;

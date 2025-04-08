@@ -149,6 +149,7 @@ void CAR_auto_mode()
     op_data.car.am_data.reverse_speed = -250;
     op_data.car.am_data.reverse_duration = 100;
     op_data.car.am_data.starting_heading = op_data.imu.euler_heading;
+    op_data.car.am_data._allow_heading_realignment = 1;
     op_data.car.am_data._delay_start_time = 0;
     op_data.car.am_data._delay_duration = 0;
     op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
@@ -180,13 +181,27 @@ void CAR_auto_mode()
   {
     if (op_data.time_now - op_data.car.am_data._heading_turn_complete_time > 400)
     {
-      op_data.car.am_data.step = CAR_AUTO_LINEAR_TRAVEL;
-      op_data.car.am_data._forward_start_time = op_data.time_now;
-      op_data.car.left_speed = op_data.car.am_data.forward_speed;
-      op_data.car.right_speed = op_data.car.am_data.forward_speed;
-      helper_queue_formatted_message("Auto mode: heading settled, moving forward at %i for %i ms",
-        op_data.car.am_data.forward_speed,
-        op_data.car.am_data.forward_duration);
+      // Check if the momentium of the car has carried it too far past the target heading
+      // And re-try aligning to heading if it has
+      // This is a bit of a hack until the club has covered PID control and tuning in heading keeping
+      if ((abs(op_data.car.am_data.target_heading_absuolute - op_data.imu.euler_heading) > 10)
+          && op_data.car.am_data._allow_heading_realignment )
+      {
+
+        op_data.car.am_data.step = CAR_AUTO_GOTO_HEADING;
+        op_data.car.am_data._allow_heading_realignment = 0;
+
+      }
+      else
+      {
+        op_data.car.am_data.step = CAR_AUTO_LINEAR_TRAVEL;
+        op_data.car.am_data._forward_start_time = op_data.time_now;
+        op_data.car.left_speed = op_data.car.am_data.forward_speed;
+        op_data.car.right_speed = op_data.car.am_data.forward_speed;
+        helper_queue_formatted_message("Auto mode: heading settled, moving forward at %i for %i ms",
+          op_data.car.am_data.forward_speed,
+          op_data.car.am_data.forward_duration);
+      }
     }
   }
   else if (op_data.car.am_data.step == CAR_AUTO_LINEAR_TRAVEL)
