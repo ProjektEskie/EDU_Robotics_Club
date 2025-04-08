@@ -397,10 +397,10 @@ bool CAR_turn_to_heading(float target_heading)
     op_data.car.right_speed = -turn_speed;
   }
   else
-  {
-    CAR_stop();
-    is_done = true;
-  }
+    {
+      CAR_stop();
+      is_done = true;
+    }
   return is_done;
 }
 
