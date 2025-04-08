@@ -206,9 +206,10 @@ void CAR_auto_mode()
   }
   else if (op_data.car.am_data.step == CAR_AUTO_LINEAR_TRAVEL)
   {
-    if ((op_data.time_now - op_data.car.am_data._forward_start_time) > op_data.car.am_data.forward_duration)
+    if ((op_data.time_now - op_data.car.am_data._forward_start_time) >= op_data.car.am_data.forward_duration)
     {
       op_data.car.am_data.step = CAR_AUTO_DONE;
+      CAR_stop();
       helper_queue_formatted_message("Auto mode: forward travel complete as normal, stopping");
     }
     else if (op_data.car.am_data.range_infront < 20)
