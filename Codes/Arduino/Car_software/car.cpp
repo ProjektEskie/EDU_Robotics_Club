@@ -170,11 +170,21 @@ void CAR_auto_mode()
   {
     if (CAR_turn_to_heading(op_data.car.am_data.target_heading_absuolute))
     {
+      op_data.car.am_data.step = CAR_AUTO_HEADING_SETTLE;
+      op_data.car.am_data._heading_turn_complete_time = op_data.time_now;
+      CAR_stop();
+      helper_queue_formatted_message("Auto mode: heading reached, settling for 400 ms before proceeding");
+    }
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_HEADING_SETTLE)
+  {
+    if (op_data.time_now - op_data.car.am_data._heading_turn_complete_time > 400)
+    {
       op_data.car.am_data.step = CAR_AUTO_LINEAR_TRAVEL;
       op_data.car.am_data._forward_start_time = op_data.time_now;
       op_data.car.left_speed = op_data.car.am_data.forward_speed;
       op_data.car.right_speed = op_data.car.am_data.forward_speed;
-      helper_queue_formatted_message("Auto mode: heading reached, moving forward at %i for %i ms",
+      helper_queue_formatted_message("Auto mode: heading settled, moving forward at %i for %i ms",
         op_data.car.am_data.forward_speed,
         op_data.car.am_data.forward_duration);
     }
@@ -189,7 +199,7 @@ void CAR_auto_mode()
     else if (op_data.car.am_data.range_infront < 20)
     {
       op_data.car.am_data._delay_start_time = op_data.time_now;
-      op_data.car.am_data._delay_duration = 200;
+      op_data.car.am_data._delay_duration = 600;
       CAR_stop();
       op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
       op_data.car.am_data.step = CAR_AUTO_DELAY_START;
