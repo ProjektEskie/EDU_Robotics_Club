@@ -509,3 +509,5 @@ Codes/Python/Remte_Control_Client/dist/RCC.exe
 
 Examples/Remte_Control_Client/dist/*
 Codes/Python/LidarTest/main.py
+Codes/Arduino/.DS_Store
+Codes/.DS_Store
