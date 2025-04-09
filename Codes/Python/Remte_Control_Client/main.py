@@ -295,6 +295,7 @@ def backend_clear_tracker_click():
     range_chart.options['series'][1]['data'] = [[0, None]]
     state_chart.options['series'][0]['data'] = [[0, None]]
     range_chart.update()
+    state_chart.update()
     
 def backend_update():
     
