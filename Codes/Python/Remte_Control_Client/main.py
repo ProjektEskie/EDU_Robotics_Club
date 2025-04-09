@@ -403,9 +403,12 @@ def backend_update():
                         range_chart.options['series'][0]['data'].append([sample_number + 1, None])
                     range_chart.options['series'][1]['data'].append(range_point_accel)
                     
-                tracker_chart.update()
-                range_chart.update()
-                state_chart.update()
+                # only update the chart if there are new data
+                # prevents the chart from resetting the zoom settings
+                if len(telemetry_data['tracker_data']) > 0:
+                    tracker_chart.update()
+                    range_chart.update()
+                    state_chart.update()
 
         if (not tq.empty()):
             glob_model['data'] = tq.get()
