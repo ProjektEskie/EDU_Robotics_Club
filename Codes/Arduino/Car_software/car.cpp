@@ -6,6 +6,7 @@
 
 bool CAR_turn_to_heading(float target_heading);
 bool CAR_turn_to_heading_pid(float target_heading);
+bool CAR_turn_to_heading_pulsed(float target_heading);
 void CAR_stop();
 void CAR_commit_speed();
 void CAR_auto_mode();
@@ -423,6 +424,58 @@ bool CAR_turn_to_heading(float target_heading)
   return is_done;
 }
 
+// Very similar to CAR_turn_to_heading but uses a pulsed mode to turn the car
+// pulse mode is used to turn the car at full power only for
+// 1 program cycle (~30ms) every 100ms. This ensures that the
+// car is driven at enoguh power to turn on any surfaces, but
+// not build up so much excess speed to cause issues when
+// trying to finish the turn precisely.
+bool CAR_turn_to_heading_pulsed(float target_heading)
+{
+  bool is_done = false;
+  float _dff = helper_angle_diff(op_data.imu.euler_heading, target_heading);
+
+  int turn_speed = 220;
+  int abs_diff;
+  abs_diff = (int)abs(_dff);
+
+  int angle_tolerance = 2;
+  int pulsed_mode_switchover = 25;
+
+  if (abs_diff > pulsed_mode_switchover)
+  {
+    if (op_data.sync.pulse_100ms)
+    {
+      turn_speed = 255;
+    }
+    else
+    {
+      turn_speed = 0;
+    }
+    
+  }
+  else
+  {
+    turn_speed = map(abs_diff, 0, 180, 150, 255);
+  }
+
+  if (_dff > angle_tolerance)
+  {
+    op_data.car.left_speed = -turn_speed;
+    op_data.car.right_speed = turn_speed;
+  }
+  else if (_dff < -angle_tolerance)
+  {
+    op_data.car.left_speed = turn_speed;
+    op_data.car.right_speed = -turn_speed;
+  }
+  else
+    {
+      CAR_stop();
+      is_done = true;
+    }
+  return is_done;
+}
 
 // Generate the speed the car needs to turn to the target heading
 // Uses a Proportional On Measurement PID controller
