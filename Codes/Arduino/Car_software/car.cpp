@@ -1,8 +1,11 @@
 #include "car.hpp"
 #include "definitions.hpp"
 #include "helpers.hpp"
+#include "PID_v1.h"
+
 
 bool CAR_turn_to_heading(float target_heading);
+bool CAR_turn_to_heading_pid(float target_heading);
 void CAR_stop();
 void CAR_commit_speed();
 void CAR_auto_mode();
@@ -184,7 +187,7 @@ void CAR_auto_mode()
       // Check if the momentium of the car has carried it too far past the target heading
       // And re-try aligning to heading if it has
       // This is a bit of a hack until the club has covered PID control and tuning in heading keeping
-      if ((abs(op_data.car.am_data.target_heading_absuolute - op_data.imu.euler_heading) > 10)
+      if ((abs(op_data.car.am_data.target_heading_absuolute - op_data.imu.euler_heading) > 6)
           && op_data.car.am_data._allow_heading_realignment )
       {
 
@@ -417,6 +420,50 @@ bool CAR_turn_to_heading(float target_heading)
       CAR_stop();
       is_done = true;
     }
+  return is_done;
+}
+
+
+// Generate the speed the car needs to turn to the target heading
+// Uses a Proportional On Measurement PID controller
+// http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
+// Returns true when the car is facing the target heading
+bool CAR_turn_to_heading_pid(float target_heading)
+{
+  static float _prev_target_heading = 0;
+  static double Setpoint, Input, Output;
+  static PID myPID(&Input, &Output, &Setpoint,5,10,2,P_ON_M, DIRECT);
+  bool is_done = false;
+
+  if (target_heading != _prev_target_heading)
+  {
+    // this is a new headingm initialize the PID controller here
+    myPID.SetMode(AUTOMATIC);
+    myPID.SetOutputLimits(-255, 255);
+  }
+
+  Setpoint = target_heading;
+  Input = op_data.imu.euler_heading;
+  myPID.Compute();
+
+  if (abs(Input - Setpoint) < 3)
+  {
+    is_done = true;
+    CAR_stop();
+  }
+  else
+  {
+    op_data.car.left_speed = (int)Output;
+    op_data.car.right_speed = (int)-Output;
+  }
+
+  if (is_done)
+  {
+    myPID.SetMode(MANUAL);
+    myPID.SetOutputLimits(-255, 255);
+  }
+
+  _prev_target_heading= target_heading;
   return is_done;
 }
 
