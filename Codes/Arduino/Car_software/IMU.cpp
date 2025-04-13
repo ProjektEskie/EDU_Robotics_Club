@@ -35,14 +35,15 @@ void IMU_update()
     op_data.imu.n_updates_counter++;
 
     op_data.imu.mySensor.updateEuler();        //Update the Euler data into the structure of the object
-    
-    // op_data.imu.mySensor.updateAccel();
-    op_data.imu.mySensor.updateLinearAccel();
-    
     op_data.imu.euler_heading = op_data.imu.mySensor.readEulerHeading();
     op_data.imu.euler_roll = op_data.imu.mySensor.readEulerRoll();
     op_data.imu.euler_pitch = op_data.imu.mySensor.readEulerPitch() * -1.0;
+  }
 
+  if (op_data.sync.pulse_100ms)
+  {
+    // op_data.imu.mySensor.updateAccel();
+    op_data.imu.mySensor.updateLinearAccel();
     op_data.imu.linaccel_x = op_data.imu.mySensor.readLinearAccelX() * -1.0;
     op_data.imu.linaccel_y = op_data.imu.mySensor.readLinearAccelY();
     op_data.imu.linaccel_z = op_data.imu.mySensor.readLinearAccelZ();

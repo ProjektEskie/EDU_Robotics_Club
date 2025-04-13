@@ -88,16 +88,19 @@ typedef enum _car_auto_mode_steps
   CAR_ATUO_BRAKE_START,
   CAR_AUTO_BRAKE_COMPLETE,
   CAR_AUTO_DELAY_START,
+  CAR_AUTO_OBSTACLE_AVOID_TURN,
+  CAR_AUTO_OBSTACLE_AVOID_ADVANCE,
+  CAR_AUTO_OBSTACLE_AVOID_CHECK,
   CAR_AUTO_DONE
 } car_auto_mode_steps;
 
-typedef struct _auto_mode_state
+typedef struct _auto_mode_saved_data
 {
   car_auto_mode_steps step_at_state_change;
   int forward_speed;
   float target_heading_absuolute;
   uint32_t forward_time_remaining;
-} auto_mode_state;
+} auto_mode_saved_data;
 
 typedef struct _car_auto_mode_data
 {
@@ -106,7 +109,10 @@ typedef struct _car_auto_mode_data
   int forward_speed;
   float target_heading_delta;
   float target_heading_absuolute;
+  float obstacle_avoid_heading;
+  uint32_t obstacle_avoid_start_time;
   uint32_t forward_duration;
+  uint32_t forward_time_remaining;
   int reverse_speed;
   uint32_t reverse_duration;
   uint8_t _allow_heading_realignment;
@@ -116,11 +122,13 @@ typedef struct _car_auto_mode_data
   uint32_t _turn_start_time;
   uint32_t _delay_start_time;
   uint32_t _delay_duration;
+  int32_t _time_traveled_in_target_heading;
+  uint32_t _prev_loop_timestamp;
   car_auto_mode_steps post_delay_step;
 
   int range_infront;
 
-  auto_mode_state saved_state;
+  auto_mode_saved_data on_delay_exit;
 
 } car_auto_mode_data;
 

@@ -128,6 +128,9 @@ void CAR_update()
 void CAR_auto_mode()
 {
 
+  uint32_t loop_time_delta = millis() - op_data.car.am_data._prev_loop_timestamp;
+  op_data.car.am_data._prev_loop_timestamp = millis();
+
   if (op_data.car.is_new_mode)
   {
     op_data.car.is_new_mode = false;
@@ -146,6 +149,19 @@ void CAR_auto_mode()
 
   op_data.car.am_data.range_infront = constrain(op_data.car.am_data.range_infront, 0, 255);
 
+  // Calculate the time traveled in the target heading
+  // This is a projection of the time traveled in the target heading into an accumulator
+  // The accumulator is used to determine if the car has traveled far enough in the target heading
+  // to be considered as having reached the target heading
+  // The projection is done using a cosine function, which is a scaler projection of the time traveled
+  // in the target heading into an accumulator
+  // if (op_data.car.am_data.step > CAR_AUTO_INIT)
+  // {
+  //   float delta_heading = helper_angle_diff(op_data.car.am_data.target_heading_absuolute, op_data.imu.euler_heading);
+  //   double _cos = cos(delta_heading * (PI / 180.0));
+  //   op_data.car.am_data._time_traveled_in_target_heading += int32_t(double(loop_time_delta) * _cos);
+
+  // }
 
   if (op_data.car.am_data.step == CAR_AUTO_INIT)
   {
@@ -157,18 +173,10 @@ void CAR_auto_mode()
     op_data.car.am_data._delay_start_time = 0;
     op_data.car.am_data._delay_duration = 0;
     op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
+    op_data.car.am_data.forward_time_remaining = op_data.car.am_data.forward_duration;
 
     // Convert the target heading (-180 to 180 delta from current) to absolute heading (0 to 360)
-    float absolute_heading = op_data.car.am_data.starting_heading + op_data.car.am_data.target_heading_delta;
-    if (absolute_heading > 360.0)
-    {
-      absolute_heading -= 360.0;
-    }
-    else if (absolute_heading < 0.0)
-    {
-      absolute_heading += 360.0;
-    }
-    op_data.car.am_data.target_heading_absuolute = absolute_heading;
+    op_data.car.am_data.target_heading_absuolute = helper_angle_add(op_data.car.am_data.starting_heading, op_data.car.am_data.target_heading_delta);
     helper_queue_formatted_message("Auto mode: ready to turn to %f", op_data.car.am_data.target_heading_absuolute);
   }
   else if (op_data.car.am_data.step == CAR_AUTO_GOTO_HEADING)
@@ -201,7 +209,7 @@ void CAR_auto_mode()
   }
   else if (op_data.car.am_data.step == CAR_AUTO_LINEAR_TRAVEL)
   {
-    if ((op_data.time_now - op_data.car.am_data._forward_start_time) >= op_data.car.am_data.forward_duration)
+    if ((op_data.time_now - op_data.car.am_data._forward_start_time) >= op_data.car.am_data.forward_time_remaining)
     {
       op_data.car.am_data.step = CAR_AUTO_DONE;
       CAR_stop();
@@ -209,15 +217,18 @@ void CAR_auto_mode()
     }
     else if (op_data.car.am_data.range_infront < 20)
     {
+      op_data.car.am_data.forward_time_remaining = op_data.car.am_data.forward_duration - (op_data.time_now - op_data.car.am_data._forward_start_time);
+      
       op_data.car.am_data._delay_start_time = op_data.time_now;
       op_data.car.am_data._delay_duration = 600;
       CAR_stop();
-      op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
+      op_data.car.am_data.post_delay_step = CAR_AUTO_OBSTACLE_AVOID_TURN;
       op_data.car.am_data.step = CAR_AUTO_DELAY_START;
       helper_queue_formatted_message("Auto mode: obstacle detected, stopping and delaying for %i ms",
         op_data.car.am_data._delay_duration);
     }
   }
+
   else if (op_data.car.am_data.step == CAR_ATUO_BRAKE_START)
   {
     op_data.car.left_speed = op_data.car.am_data.reverse_speed;
@@ -237,6 +248,48 @@ void CAR_auto_mode()
     if ((op_data.time_now - op_data.car.am_data._delay_start_time) > op_data.car.am_data._delay_duration)
     {
       op_data.car.am_data.step = op_data.car.am_data.post_delay_step;
+      op_data.car.am_data.obstacle_avoid_heading = helper_angle_add(op_data.imu.euler_heading, 90);
+    }
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_OBSTACLE_AVOID_TURN)
+  {
+    if (CAR_turn_to_heading_pulsed(op_data.car.am_data.obstacle_avoid_heading))
+    {
+      op_data.car.am_data.step = CAR_AUTO_OBSTACLE_AVOID_ADVANCE;
+      op_data.car.am_data.obstacle_avoid_start_time = op_data.time_now;
+      op_data.car.left_speed = op_data.car.am_data.forward_speed;
+      op_data.car.right_speed = op_data.car.am_data.forward_speed;
+      helper_queue_formatted_message("Auto mode: obstacle avoid turn complete");
+    }
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_OBSTACLE_AVOID_ADVANCE)
+  {
+    if ((op_data.time_now - op_data.car.am_data.obstacle_avoid_start_time) >= 500)
+    {
+      op_data.car.am_data.step = CAR_AUTO_DELAY_START;
+      op_data.car.am_data._delay_duration = 600;
+      CAR_stop();
+      op_data.car.am_data.post_delay_step = CAR_AUTO_OBSTACLE_AVOID_CHECK;
+      helper_queue_formatted_message("Auto mode: obstacle avoid advance complete");
+    }
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_OBSTACLE_AVOID_CHECK)
+  {
+    if (CAR_turn_to_heading_pulsed(op_data.car.am_data.target_heading_absuolute))
+    {
+      if (op_data.car.am_data.range_infront < 20)
+      {
+        op_data.car.am_data.step = CAR_AUTO_OBSTACLE_AVOID_TURN;
+        op_data.car.am_data.obstacle_avoid_heading = helper_angle_add(op_data.imu.euler_heading, 90);
+      }
+      else
+      {
+        op_data.car.am_data.step = CAR_AUTO_LINEAR_TRAVEL;
+        op_data.car.am_data._forward_start_time = op_data.time_now;
+        op_data.car.left_speed = op_data.car.am_data.forward_speed;
+        op_data.car.right_speed = op_data.car.am_data.forward_speed;
+        helper_queue_formatted_message("Auto mode: obstacle avoid check complete, moving forward");
+      }
     }
   }
   else if (op_data.car.am_data.step == CAR_AUTO_DONE)
@@ -430,8 +483,8 @@ bool CAR_turn_to_heading_pulsed(float target_heading)
   int abs_diff;
   abs_diff = (int)abs(_dff);
 
-  int angle_tolerance = 1.5;
-  int pulsed_mode_switchover = 25;
+  int angle_tolerance = 1.0;
+  int pulsed_mode_switchover = 60;
 
   if (abs_diff < pulsed_mode_switchover)
   {

@@ -17,6 +17,20 @@ float helper_angle_diff(float current_angle, float target_angle)
   return float(angle_diff/100.0);
 }
 
+float helper_angle_add(float angle, float delta_angle)
+{
+  float out = angle + delta_angle;
+  if (out > 360.0)
+  {
+    out -= 360.0;
+  }
+  else if (out < 0.0)
+  {
+    out += 360.0;
+  }
+  return out;
+}
+
 void helper_clear_input_buffer()
 {
   extern char _input_buffer[];
