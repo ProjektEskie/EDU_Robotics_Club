@@ -155,13 +155,13 @@ void CAR_auto_mode()
   // to be considered as having reached the target heading
   // The projection is done using a cosine function, which is a scaler projection of the time traveled
   // in the target heading into an accumulator
-  // if (op_data.car.am_data.step > CAR_AUTO_INIT)
-  // {
-  //   float delta_heading = helper_angle_diff(op_data.car.am_data.target_heading_absuolute, op_data.imu.euler_heading);
-  //   double _cos = cos(delta_heading * (PI / 180.0));
-  //   op_data.car.am_data._time_traveled_in_target_heading += int32_t(double(loop_time_delta) * _cos);
+  if (op_data.car.am_data.step > CAR_AUTO_INIT)
+  {
+    float delta_heading = helper_angle_diff(op_data.car.am_data.target_heading_absuolute, op_data.imu.euler_heading);
+    double _cos = cos(delta_heading * (PI / 180.0));
+    op_data.car.am_data._time_traveled_in_target_heading += int32_t(double(loop_time_delta) * _cos);
 
-  // }
+  }
 
   if (op_data.car.am_data.step == CAR_AUTO_INIT)
   {
@@ -227,6 +227,7 @@ void CAR_auto_mode()
       CAR_stop();
       op_data.car.am_data.post_delay_step = CAR_AUTO_OBSTACLE_AVOID_TURN;
       op_data.car.am_data.step = CAR_AUTO_DELAY_START;
+      op_data.car.am_data.obstacle_avoid_heading = helper_angle_add(op_data.imu.euler_heading, 90);
       helper_queue_formatted_message("Auto mode: obstacle detected, stopping and delaying for %i ms",
         op_data.car.am_data._delay_duration);
     }
@@ -251,7 +252,6 @@ void CAR_auto_mode()
     if ((op_data.time_now - op_data.car.am_data._delay_start_time) > op_data.car.am_data._delay_duration)
     {
       op_data.car.am_data.step = op_data.car.am_data.post_delay_step;
-      op_data.car.am_data.obstacle_avoid_heading = helper_angle_add(op_data.imu.euler_heading, 90);
     }
   }
   else if (op_data.car.am_data.step == CAR_AUTO_OBSTACLE_AVOID_TURN)
@@ -275,6 +275,16 @@ void CAR_auto_mode()
       op_data.car.am_data.post_delay_step = CAR_AUTO_OBSTACLE_AVOID_CHECK;
       helper_queue_formatted_message("Auto mode: obstacle avoid advance complete");
     }
+    // This section handles what happens if the car runs into something on the new heading, leave disabled for now
+    // else if (op_data.car.am_data.range_infront < 20)
+    // {
+    //   op_data.car.am_data._delay_start_time = op_data.time_now;
+    //   op_data.car.am_data._delay_duration = 600;
+    //   CAR_stop();
+    //   op_data.car.am_data.post_delay_step = CAR_AUTO_OBSTACLE_AVOID_TURN;
+    //   op_data.car.am_data.step = CAR_AUTO_DELAY_START;
+    //   op_data.car.am_data.obstacle_avoid_heading = helper_angle_add(op_data.imu.euler_heading, 90);
+    // }
   }
   else if (op_data.car.am_data.step == CAR_AUTO_OBSTACLE_AVOID_CHECK)
   {
