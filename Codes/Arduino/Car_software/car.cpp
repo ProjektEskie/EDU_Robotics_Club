@@ -211,7 +211,10 @@ void CAR_auto_mode()
   {
     if ((op_data.time_now - op_data.car.am_data._forward_start_time) >= op_data.car.am_data.forward_time_remaining)
     {
-      op_data.car.am_data.step = CAR_AUTO_DONE;
+      op_data.car.am_data._delay_start_time = op_data.time_now;
+      op_data.car.am_data._delay_duration = 600;
+      op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
+      op_data.car.am_data.step = CAR_AUTO_DELAY_START;
       CAR_stop();
       helper_queue_formatted_message("Auto mode: forward travel complete as normal, stopping");
     }
