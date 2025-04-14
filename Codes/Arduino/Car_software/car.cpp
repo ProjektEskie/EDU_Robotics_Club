@@ -174,6 +174,7 @@ void CAR_auto_mode()
     op_data.car.am_data._delay_duration = 0;
     op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
     op_data.car.am_data.forward_time_remaining = op_data.car.am_data.forward_duration;
+    op_data.car_am_data._n_advance_completed = 0;
 
     // Convert the target heading (-180 to 180 delta from current) to absolute heading (0 to 360)
     op_data.car.am_data.target_heading_absuolute = helper_angle_add(op_data.car.am_data.starting_heading, op_data.car.am_data.target_heading_delta);
@@ -211,12 +212,23 @@ void CAR_auto_mode()
   {
     if ((op_data.time_now - op_data.car.am_data._forward_start_time) >= op_data.car.am_data.forward_time_remaining)
     {
-      op_data.car.am_data._delay_start_time = op_data.time_now;
-      op_data.car.am_data._delay_duration = 600;
-      op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
-      op_data.car.am_data.step = CAR_AUTO_DELAY_START;
-      CAR_stop();
-      helper_queue_formatted_message("Auto mode: forward travel complete as normal, stopping");
+      if (op_data.car.am_data._n_advance_completed > 0)
+      {
+        op_data.car.am_data._delay_start_time = op_data.time_now;
+        op_data.car.am_data._delay_duration = 600;
+        op_data.car.am_data.post_delay_step = CAR_AUTO_RETURN_TURN;
+        op_data.car.am_data.step = CAR_AUTO_DELAY_START;
+        helper_queue_formatted_message("Auto mode: %i advance completed", op_data.car.am_data._n_advance_completed);
+      }
+      else
+      {
+        op_data.car.am_data._delay_start_time = op_data.time_now;
+        op_data.car.am_data._delay_duration = 600;
+        op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
+        op_data.car.am_data.step = CAR_AUTO_DELAY_START;
+        CAR_stop();
+        helper_queue_formatted_message("Auto mode: forward travel complete as normal, stopping");
+      }
     }
     else if (op_data.car.am_data.range_infront < 20)
     {
@@ -271,6 +283,7 @@ void CAR_auto_mode()
     {
       op_data.car.am_data.step = CAR_AUTO_DELAY_START;
       op_data.car.am_data._delay_duration = 600;
+      op_data.car_am_data._n_advance_completed++;
       CAR_stop();
       op_data.car.am_data.post_delay_step = CAR_AUTO_OBSTACLE_AVOID_CHECK;
       helper_queue_formatted_message("Auto mode: obstacle avoid advance complete");
@@ -297,13 +310,22 @@ void CAR_auto_mode()
       }
       else
       {
-        op_data.car.am_data.step = CAR_AUTO_LINEAR_TRAVEL;
-        op_data.car.am_data._forward_start_time = op_data.time_now;
         op_data.car.left_speed = op_data.car.am_data.forward_speed;
         op_data.car.right_speed = op_data.car.am_data.forward_speed;
+        op_data.car.am_data.step = CAR_AUTO_LINEAR_TRAVEL;
+        op_data.car.am_data._forward_start_time = op_data.time_now;
+
         helper_queue_formatted_message("Auto mode: obstacle avoid check complete, moving forward");
       }
     }
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_RETURN_TURN)
+  {
+
+  }
+  else if (op_data.car.am_data.step == CAR_AUTO_RETURN_ADVANCE)
+  {
+
   }
   else if (op_data.car.am_data.step == CAR_AUTO_DONE)
   {
