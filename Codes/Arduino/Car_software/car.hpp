@@ -91,6 +91,8 @@ typedef enum _car_auto_mode_steps
   CAR_AUTO_OBSTACLE_AVOID_TURN,
   CAR_AUTO_OBSTACLE_AVOID_ADVANCE,
   CAR_AUTO_OBSTACLE_AVOID_CHECK,
+  CAR_AUTO_RETURN_TURN,
+  CAR_AUTO_RETURN_ADVANCE,
   CAR_AUTO_DONE
 } car_auto_mode_steps;
 
@@ -124,6 +126,7 @@ typedef struct _car_auto_mode_data
   uint32_t _delay_duration;
   int32_t _time_traveled_in_target_heading;
   uint32_t _prev_loop_timestamp;
+  int _n_advance_completed;
   car_auto_mode_steps post_delay_step;
 
   int range_infront;
