@@ -174,7 +174,8 @@ void CAR_auto_mode()
     op_data.car.am_data._delay_duration = 0;
     op_data.car.am_data.post_delay_step = CAR_AUTO_DONE;
     op_data.car.am_data.forward_time_remaining = op_data.car.am_data.forward_duration;
-    op_data.car_am_data._n_advance_completed = 0;
+    op_data.car.am_data._n_advance_completed = 0;
+    op_data.car.am_data.return_heading = 0;
 
     // Convert the target heading (-180 to 180 delta from current) to absolute heading (0 to 360)
     op_data.car.am_data.target_heading_absuolute = helper_angle_add(op_data.car.am_data.starting_heading, op_data.car.am_data.target_heading_delta);
@@ -218,7 +219,8 @@ void CAR_auto_mode()
         op_data.car.am_data._delay_duration = 600;
         op_data.car.am_data.post_delay_step = CAR_AUTO_RETURN_TURN;
         op_data.car.am_data.step = CAR_AUTO_DELAY_START;
-        helper_queue_formatted_message("Auto mode: %i advance completed", op_data.car.am_data._n_advance_completed);
+        op_data.car.am_data.return_heading = helper_angle_add(op_data.car.am_data.obstacle_avoid_heading, 180);
+        helper_queue_formatted_message("Auto mode: returning to orgional line of travel");
       }
       else
       {
@@ -233,30 +235,11 @@ void CAR_auto_mode()
     else if (op_data.car.am_data.range_infront < 20)
     {
       op_data.car.am_data.forward_time_remaining = op_data.car.am_data.forward_duration - (op_data.time_now - op_data.car.am_data._forward_start_time);
-      
-      op_data.car.am_data._delay_start_time = op_data.time_now;
-      op_data.car.am_data._delay_duration = 600;
       CAR_stop();
-      op_data.car.am_data.post_delay_step = CAR_AUTO_OBSTACLE_AVOID_TURN;
-      op_data.car.am_data.step = CAR_AUTO_DELAY_START;
+      op_data.car.am_data.step = CAR_AUTO_OBSTACLE_AVOID_TURN;
       op_data.car.am_data.obstacle_avoid_heading = helper_angle_add(op_data.imu.euler_heading, 90);
       helper_queue_formatted_message("Auto mode: obstacle detected, stopping and delaying for %i ms",
         op_data.car.am_data._delay_duration);
-    }
-  }
-
-  else if (op_data.car.am_data.step == CAR_ATUO_BRAKE_START)
-  {
-    op_data.car.left_speed = op_data.car.am_data.reverse_speed;
-    op_data.car.right_speed = op_data.car.am_data.reverse_speed;
-    op_data.car.am_data._reverse_start_time = op_data.time_now;
-    op_data.car.am_data.step = CAR_AUTO_BRAKE_COMPLETE;
-  }
-  else if (op_data.car.am_data.step == CAR_AUTO_BRAKE_COMPLETE)
-  {
-    if ((op_data.time_now - op_data.car.am_data._reverse_start_time) > op_data.car.am_data.reverse_duration)
-    {
-      op_data.car.am_data.step = CAR_AUTO_DONE;
     }
   }
   else if (op_data.car.am_data.step == CAR_AUTO_DELAY_START)
@@ -279,13 +262,12 @@ void CAR_auto_mode()
   }
   else if (op_data.car.am_data.step == CAR_AUTO_OBSTACLE_AVOID_ADVANCE)
   {
-    if ((op_data.time_now - op_data.car.am_data.obstacle_avoid_start_time) >= 500)
+    if ((op_data.time_now - op_data.car.am_data.obstacle_avoid_start_time) >= OBSTACLE_AVOID_DURATION)
     {
-      op_data.car.am_data.step = CAR_AUTO_DELAY_START;
-      op_data.car.am_data._delay_duration = 600;
-      op_data.car_am_data._n_advance_completed++;
+      // Do not delay and coast, imemdiately execute the turn to orgional heading to kill the momentium in the car
+      op_data.car.am_data._n_advance_completed++;
       CAR_stop();
-      op_data.car.am_data.post_delay_step = CAR_AUTO_OBSTACLE_AVOID_CHECK;
+      op_data.car.am_data.step = CAR_AUTO_OBSTACLE_AVOID_CHECK;
       helper_queue_formatted_message("Auto mode: obstacle avoid advance complete");
     }
     // This section handles what happens if the car runs into something on the new heading, leave disabled for now
@@ -321,11 +303,26 @@ void CAR_auto_mode()
   }
   else if (op_data.car.am_data.step == CAR_AUTO_RETURN_TURN)
   {
-
+    if (CAR_turn_to_heading_pulsed(op_data.car.am_data.return_heading))
+    {
+      op_data.car.am_data.step = CAR_AUTO_RETURN_ADVANCE;
+      op_data.car.am_data._return_start_time = op_data.time_now;
+      op_data.car.left_speed = op_data.car.am_data.forward_speed;
+      op_data.car.right_speed = op_data.car.am_data.forward_speed;
+      op_data.car.am_data.return_duration = op_data.car.am_data._n_advance_completed * OBSTACLE_AVOID_DURATION;
+      helper_queue_formatted_message("Auto mode: return turn complete, moving forward");
+    }
   }
   else if (op_data.car.am_data.step == CAR_AUTO_RETURN_ADVANCE)
   {
-
+    if ((op_data.time_now - op_data.car.am_data._return_start_time) >= op_data.car.am_data.return_duration)
+    {
+      if (CAR_turn_to_heading_pulsed(op_data.car.am_data.target_heading_absuolute))
+      {
+        op_data.car.am_data.step = CAR_AUTO_DONE;
+        helper_queue_formatted_message("Auto mode: return advance complete");
+      }
+    }
   }
   else if (op_data.car.am_data.step == CAR_AUTO_DONE)
   {
@@ -335,7 +332,11 @@ void CAR_auto_mode()
 
   }
   else
-  {}
+  {
+    helper_queue_formatted_message("Auto mode: ERROR step %i not handled",
+      op_data.car.am_data.step);
+      op_data.car.am_data.step = CAR_AUTO_DONE;
+  }
   
 }
 

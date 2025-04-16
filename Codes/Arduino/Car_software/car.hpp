@@ -11,6 +11,8 @@
 #define ECHO_TIMEOUT_US 10000
 #define RANGING_DATA_SIZE 7
 
+#define OBSTACLE_AVOID_DURATION 350
+
 #if IS_EGLOO_PLATFORM
   #define LEFT_DIRECTION_PIN A3
   #define LEFT_DIRECTION_PIN_IN2 8
@@ -113,6 +115,8 @@ typedef struct _car_auto_mode_data
   float target_heading_absuolute;
   float obstacle_avoid_heading;
   uint32_t obstacle_avoid_start_time;
+  float return_heading;
+  uint32_t return_duration;
   uint32_t forward_duration;
   uint32_t forward_time_remaining;
   int reverse_speed;
@@ -126,6 +130,7 @@ typedef struct _car_auto_mode_data
   uint32_t _delay_duration;
   int32_t _time_traveled_in_target_heading;
   uint32_t _prev_loop_timestamp;
+  uint32_t _return_start_time;
   int _n_advance_completed;
   car_auto_mode_steps post_delay_step;
 
