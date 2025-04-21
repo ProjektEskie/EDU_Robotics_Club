@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 480
-VERSION_STR = '2.17'
+VERSION_STR = '2.18'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -495,10 +495,21 @@ def create_tracker_window():
         tracker_chart = ui.echart({
             'title': {'text': 'Tracker Data'},
             'tooltip': {'trigger': 'item', 'axisPointer': {'type': 'cross'}},
+            'dataZoom': [
+                { 
+                    'type': 'inside',
+                },
+                {
+                    'type': 'inside',
+                    'yAxisIndex': 0,
+                }
+            ],
             'xAxis': {
                 'type': 'value',
                 'name': 'X (cm)',
                 'nameLocation': 'middle',
+                'min': -200,
+                'max': 200,
                 'scale': True,
                 'axisLabel': {'formatter': '{value}'},
             },
@@ -506,6 +517,8 @@ def create_tracker_window():
                 'type': 'value',
                 'name': 'Y (cm)',
                 'nameLocation': 'middle',
+                'min': -200,
+                'max': 200,
                 'scale': True,
                 'axisLabel': {'formatter': '{value}'},
             },
