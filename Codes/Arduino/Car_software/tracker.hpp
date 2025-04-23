@@ -18,8 +18,19 @@ typedef struct _track_point
     uint8_t spare_bytes[2];
 } track_point;
 
+typedef struct _current_position
+{
+    float x_cm;
+    float y_cm;
+} current_position;
+
 void tracker_init();
 void tracker_update();
+
+void tracker_set_heading_offset(float heading_offset);
+current_position tracker_get_current_position();
+void tracker_set_current_position(current_position pos);
+
 
 
 

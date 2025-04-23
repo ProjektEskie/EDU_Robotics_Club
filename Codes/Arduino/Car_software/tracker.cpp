@@ -11,6 +11,9 @@
 extern operation_data op_data;
 extern cppQueue tracker_queue;
 
+current_position _tracker_current_pos;
+float _tracker_heading_offset = 0.0f;
+
 // Estimate the distance traveled based on the power
 // level of the car and the time interval, returns
 // distance as integer in mm. Currently assumes
@@ -18,9 +21,16 @@ extern cppQueue tracker_queue;
 // level is 255, and 0m/s when the power level is 90.
 int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms);
 bool _should_transmit(int average_car_speed);
+
+void _tracker_calculate_current_position();
+
 void tracker_init()
 {
     tracker_queue.flush();
+    current_position zero_pos;
+    memset(&zero_pos, 0, sizeof(current_position));
+    tracker_set_current_position(zero_pos);
+    _tracker_heading_offset = 0.0f;
 }
 
 void tracker_update()
@@ -102,6 +112,16 @@ void tracker_update()
     }
 }
 
+current_position tracker_get_current_position()
+{
+    return _tracker_current_pos;
+}
+
+void tracker_set_current_position(current_position pos)
+{
+    memncpy(&_tracker_current_pos, &pos, sizeof(current_position));
+}
+
 int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms)
 {
     int distance_mm;
@@ -109,6 +129,11 @@ int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms)
     speed_mps = ((float)average_car_speed / 255.0) * 0.6;
     distance_mm = (int)(speed_mps * interval_ms);
     return distance_mm;
+}
+
+void tracker_set_heading_offset(float heading_offset)
+{
+    _tracker_heading_offset = heading_offset;
 }
 
 bool _should_transmit(int average_car_speed)
