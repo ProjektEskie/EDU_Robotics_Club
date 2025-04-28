@@ -329,6 +329,9 @@ void CAR_auto_mode()
   }
   else if (op_data.car.am_data.step == CAR_AUTO_DONE)
   {
+    tracker_xy xy = tracker_api_get_current_xy();
+    helper_queue_formatted_message("Auto mode: done, coords: x %i mm, y %i mm",
+      xy.x, xy.y);
     CAR_stop();
     CAR_API_set_mode(CAR_MODE_IDLE);
     helper_queue_messages("Auto mode: done, returning to idle mode.");
