@@ -29,6 +29,7 @@ void tracker_update();
 
 void tracker_set_reference_heading(float heading);
 void tracker_set_reference_xy(int32_t x, int32_t y);
+void tracker_api_add_xy_delta(int32_t delta_x, int32_t delta_y);
 tracker_xy tracker_api_get_current_xy();
 
 

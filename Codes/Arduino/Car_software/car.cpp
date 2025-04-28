@@ -177,6 +177,9 @@ void CAR_auto_mode()
     op_data.car.am_data._n_advance_completed = 0;
     op_data.car.am_data.return_heading = 0;
 
+    tracker_set_reference_heading(op_data.car.am_data.starting_heading);
+    tracker_set_reference_xy(0, 0);
+
     // Convert the target heading (-180 to 180 delta from current) to absolute heading (0 to 360)
     op_data.car.am_data.target_heading_absuolute = helper_angle_add(op_data.car.am_data.starting_heading, op_data.car.am_data.target_heading_delta);
     helper_queue_formatted_message("Auto mode: ready to turn to %f", op_data.car.am_data.target_heading_absuolute);

@@ -81,6 +81,14 @@ void tracker_update()
         tp.lin_accel_x = lin_accel_x;
         tp.echo_range_cm = op_data.car.am_data.range_infront;
 
+        // Calculate the current position in x and y coordinates
+        // based on the heading and distance traveled
+        float heading_rad = (float)op_data.imu.euler_heading * (PI / 180.0f);
+        float _distance_mm_f = (float)distance_mm;
+        float delta_x = _distance_mm_f * cos(heading_rad) * -1.0;
+        float delta_y = _distance_mm_f * sin(heading_rad);
+        tracker_api_add_xy_delta((int32_t) delta_x, (int32_t) delta_y);
+
         tp.status_flags = 0;
         if (op_data.car.left_speed != 0 || op_data.car.right_speed != 0)
         {
@@ -118,6 +126,12 @@ void tracker_set_reference_xy(int32_t x, int32_t y)
 {
     _current_xy.x = x;
     _current_xy.y = y;
+}
+
+void tracker_api_add_xy_delta(int32_t delta_x, int32_t delta_y)
+{
+    _current_xy.x += delta_x;
+    _current_xy.y += delta_y;
 }
 
 int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms)
