@@ -28,10 +28,6 @@ void tracker_init()
     tracker_set_reference_heading(op_data.imu.euler_heading);
     tracker_set_reference_xy(0, 0);
     tracker_queue.flush();
-    current_position zero_pos;
-    memset(&zero_pos, 0, sizeof(current_position));
-    tracker_set_current_position(zero_pos);
-    _tracker_heading_offset = 0.0f;
 }
 
 void tracker_update()
@@ -145,11 +141,6 @@ int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms)
     speed_mps = ((float)average_car_speed / 255.0) * 0.6;
     distance_mm = (int)(speed_mps * interval_ms);
     return distance_mm;
-}
-
-void tracker_set_heading_offset(float heading_offset)
-{
-    _tracker_heading_offset = heading_offset;
 }
 
 bool _should_transmit(int average_car_speed)
