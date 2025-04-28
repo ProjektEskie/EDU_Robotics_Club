@@ -143,6 +143,12 @@ int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms)
     return distance_mm;
 }
 
+tracker_xy tracker_api_get_current_xy()
+{
+    return _current_xy;
+}
+
+
 bool _should_transmit(int average_car_speed)
 {
     // If the car is not moving, continue to transmit for the following counts and then stop
