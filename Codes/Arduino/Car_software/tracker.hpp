@@ -18,8 +18,18 @@ typedef struct _track_point
     uint8_t spare_bytes[2];
 } track_point;
 
+typedef struct _tracker_xy
+{
+    int32_t x;  // in mm
+    int32_t y;  // in mm
+} tracker_xy;
+
 void tracker_init();
 void tracker_update();
+
+void tracker_set_reference_heading(float heading);
+void tracker_set_reference_xy(int32_t x, int32_t y);
+tracker_xy tracker_api_get_current_xy();
 
 
 
