@@ -96,15 +96,17 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     for i in range(n_tracker_points):
                         offset = fixed_part_size + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
                         try:
-                            _xy, linaccel, echo, status = struct.unpack_from(tracker_data_format, data, offset)
+                            _xy, _linaccel_and_gyro, echo, status = struct.unpack_from(tracker_data_format, data, offset)
                             # x position is stored as the upper 16 bits of the first integer, y position is stored as the lower 16 bits of the first integer
                             x = _xy >> 16  # Extract the upper 16 bits for x
                             y = _xy & 0xFFFF  # Extract the lower 16 bits for y
                             # Convert units from integer to appropriate scale
                             x = float(x) / 10.0  # 0.1 deg to degree
                             y = float(y) / 10.0  # mm to cm
-                            linaccel = float(linaccel) / 100.0  # cm/s^2 to m/s^2
-                            tracker_data.append((x, y, status, linaccel, echo))
+                            _linaccel = _linaccel_and_gyro &0xFFFF  # Extract the lower 16 bits for linear acceleration
+                            gyro = float(_linaccel_and_gyro >> 16)/10.0  # Extract the upper 16 bits for gyro rate
+                            linaccel = float(_linaccel) / 100.0  # cm/s^2 to m/s^2
+                            tracker_data.append((x, y, status, linaccel, echo, gyro))
                         except struct.error as e:
                             logger.error("Error unpacking tracker data at index %d: %s", i, e)
                             continue
@@ -294,8 +296,10 @@ def backend_clear_tracker_click():
     range_chart.options['series'][0]['data'] = [[0, None]]
     range_chart.options['series'][1]['data'] = [[0, None]]
     state_chart.options['series'][0]['data'] = [[0, None]]
+    gyro_chart.options['series'][0]['data'] = [[0, None]]
     range_chart.update()
     state_chart.update()
+    gyro_chart.update()
     
 def backend_update():
     
@@ -378,6 +382,9 @@ def backend_update():
 
                     range_point = [sample_number + 1, tracking_point[4]]
                     range_point_accel = [sample_number+ 1, tracking_point[3]]
+                    
+                    gyro_point = [sample_number + 1, tracking_point[5]]
+                    gyro_chart.options['series'][0]['data'].append(gyro_point)
 
                     # Only add echo point if it is valid
                     status_byte = tracking_point[2]
@@ -409,6 +416,7 @@ def backend_update():
                     tracker_chart.update()
                     range_chart.update()
                     state_chart.update()
+                    gyro_chart.update()
 
         if (not tq.empty()):
             glob_model['data'] = tq.get()
@@ -612,6 +620,46 @@ def create_data_window():
                 {'type': 'line', 'name': 'State', 'data': [[0, None]], 'yAxisIndex': 0, 'symbolSize': 5},
             ],
         })
+        
+        
+def create_gyro_window():
+    global gyro_chart
+    with ui.card() as gyro_window:
+        gyro_window.tight()
+        gyro_window.classes('w-full h-80')
+
+        gyro_chart = ui.echart({
+            'title': {'text': 'Gyro Data'},
+            'tooltip': {'trigger': 'item', 'axisPointer': {'type': 'cross'}},
+            'dataZoom': [
+                {
+                    'type': 'inside',
+                    'start': 0,
+                    }
+                ],
+            'xAxis': {
+                'type': 'value',
+                'name': 'Sample Number',
+                'nameLocation': 'middle',
+                'scale': True,
+                'axisLabel': {'formatter': '{value}'},
+            },
+            'yAxis': [
+                {
+                    'type': 'value',
+                    'name': 'Gyro rate (deg/s)',
+                    'nameLocation': 'middle',
+                    'scale': True,
+                    'axisLabel': {'formatter': '{value}'},
+                },
+            ],
+            'series': [
+                {'type': 'line', 'name': 'gyro', 'data': [[0, None]], 'yAxisIndex': 0, 'symbolSize': 5},
+            ],
+        })
+        gyro_chart.classes('w-full h-full')
+
+    return gyro_window
 
 def create_auto_mode_card():
     global auto_control_heading_slider, auto_control_speed_slider, auto_control_duration_slider
@@ -699,10 +747,10 @@ def create_heading_card():
         heading_card.classes('w-11/12 bg-green-200')
         with ui.card_section():
             car_direction_mode_sw = ui.switch('Heading Control Mode', on_change=backend_car_direction_mode_sw_change)
-        joystick_direction = ui.joystick(color='green', size=50,
-                                         on_move=backend_car_direction_joystick_update,
-                                         on_end=backend_car_direction_joystick_set)
-        joystick_direction.classes('w-full h-full')
+            joystick_direction = ui.joystick(color='green', size=50,
+                                            on_move=backend_car_direction_joystick_update,
+                                            on_end=backend_car_direction_joystick_set)
+            joystick_direction.classes('w-full h-40')
         with ui.card_section():
             car_direction_label = ui.label('Car not in heading mode')
     return heading_card
@@ -764,11 +812,13 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
     ui.markdown('##Robot Status')
     
     with ui.tabs().classes('w-full') as tabs:
+        control = ui.tab('Control')
         vis = ui.tab('Data')
         raw = ui.tab('Telemetry')
         cli = ui.tab('CLI')
         
-    with ui.tab_panels(tabs, value=vis).classes('w-full'):
+        
+    with ui.tab_panels(tabs, value=control).classes('w-full'):
         with ui.tab_panel(vis):
 
             with ui.grid(columns='1fr 1fr').classes('h-6/12 gap-0'):
@@ -800,6 +850,8 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
             telemetry_table.style('font-size: 75%;')
                    
             ui.separator()
+            ui.button('Clear plot / Re-Orient', on_click=backend_clear_tracker_click)
+            ui.separator()
             
             with ui.card() as data_window:
                 data_window.tight()
@@ -820,6 +872,30 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
             ui.separator()
             ui.markdown('###Command Line Interface')
             comm_window = create_comm_window()
+            
+        with ui.tab_panel(control):
+            ui.separator()
+            ui.markdown('###Control Panel')
+            auto_card = create_auto_mode_card()
+            front_sensor_card = create_front_sensor_card()
+            manual_move_card = create_manual_move_card()
+            heading_card = create_heading_card()
+            ranging_card = create_ranging_card()
+            
+            
+            # with ui.grid(columns='1fr 1fr').classes('w-full gap-0'):
+            #     auto_card = create_auto_mode_card()
+            #     front_sensor_card = create_front_sensor_card()
+                
+            # with ui.grid(columns='1fr 1fr').classes('w-full gap-0'):
+            #     manual_move_card = create_manual_move_card()
+            #     heading_card = create_heading_card()
+                
+            # with ui.card() as ranging_card:
+            #     ranging_card.tight()
+            #     ranging_card.classes('w-full h-80 bg-blue-200')
+            #     ranging_chart = create_ranging_card()
+
 
 
 with ui.grid(columns='2fr 2fr').classes('w-full gap-0'):
@@ -827,13 +903,11 @@ with ui.grid(columns='2fr 2fr').classes('w-full gap-0'):
     data_window = create_data_window()
 
 ui.separator()  
+gyro_window = create_gyro_window()
+ui.separator()  
 
-with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
-    auto_card = create_auto_mode_card()
-    front_sensor_card = create_front_sensor_card()
-    manual_move_card = create_manual_move_card()
-    heading_card = create_heading_card()
-    ranging_card = create_ranging_card()
+# with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
+
 
 
 glob_model['is_ui_init'] = True
