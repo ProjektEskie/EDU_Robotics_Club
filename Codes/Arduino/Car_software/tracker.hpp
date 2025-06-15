@@ -9,7 +9,7 @@
 typedef struct _track_point
 {
     int32_t heading_and_distance;  // in 0.1 degrees and mm
-    int32_t lin_accel_x;  // in cm/s/s,
+    int32_t lin_accel_and_gyro;  // low 2 bytes accel in cm/s/s, high 2 bytes gyro in 0.1 degrees/s
     uint8_t echo_range_cm;
     uint8_t status_flags;  // bit 0: motor on/off 
                            // bit 1: Ranging sensor valid

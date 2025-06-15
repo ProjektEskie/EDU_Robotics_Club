@@ -78,7 +78,13 @@ void tracker_update()
         tp.heading_and_distance = (int32_t)((heading << 16) | (distance_mm & 0xFFFF));
         int lin_accel_x = (int)(op_data.imu.linaccel_x * 100);
         // Store the linear acceleration in cm/s/s
-        tp.lin_accel_x = lin_accel_x;
+        tp.lin_accel_and_gyro = lin_accel_x;
+
+        int gyro_z = (int)(op_data.imu.gyro_z * 10.0f);
+        // Store the gyro z in 0.1 degrees/s
+        tp.lin_accel_and_gyro |= (gyro_z << 16);
+        
+        // Store the echo range in cm
         tp.echo_range_cm = op_data.car.am_data.range_infront;
 
         // Calculate the current position in x and y coordinates
