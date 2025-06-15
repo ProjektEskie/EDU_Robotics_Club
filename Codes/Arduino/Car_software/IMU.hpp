@@ -20,6 +20,8 @@ typedef struct _imu_data
   float euler_heading;
   float euler_pitch;
   float euler_roll;
+  
+  float gyro_z;
 
   float linaccel_x;
   float linaccel_y;

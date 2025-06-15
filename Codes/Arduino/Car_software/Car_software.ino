@@ -423,6 +423,8 @@ void telemetry_generate()
   IMU["euler"].add(op_data.imu.euler_pitch);
   IMU["euler"].add(op_data.imu.euler_roll);
 
+  IMU["gyro_z"] = op_data.imu.gyro_z;
+
   // IMU["lin_accel"].add(op_data.imu.linaccel_x);
   // IMU["lin_accel"].add(op_data.imu.linaccel_y);
   // IMU["lin_accel"].add(op_data.imu.linaccel_z);
