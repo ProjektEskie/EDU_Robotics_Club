@@ -36,11 +36,13 @@ void IMU_update()
 
     op_data.imu.mySensor.updateGyro();          //Update the Gyro data into the structure of the object
     op_data.imu.gyro_z = op_data.imu.mySensor.readGyroZ() * -1.0;  //Read the Gyro Z value and invert it
+    // Serial.print("IMU - Gyro Z: \t");
+    // Serial.println(op_data.imu.gyro_z);
   }
 
   if (op_data.sync.pulse_100ms)
   {
-    // op_data.imu.mySensor.updateAccel();
+    op_data.imu.mySensor.updateAccel();
     op_data.imu.mySensor.updateLinearAccel();
     op_data.imu.linaccel_x = op_data.imu.mySensor.readLinearAccelX() * -1.0;
     op_data.imu.linaccel_y = op_data.imu.mySensor.readLinearAccelY();

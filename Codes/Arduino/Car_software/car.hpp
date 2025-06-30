@@ -40,6 +40,7 @@ typedef enum _car_mode
   CAR_MODE_HEADING_KEEP,
   CAR_MODE_PNG,  // Point and go mode.
   CAR_MODE_AUTO,
+  CAR_MODE_TURN_RATE,
   N_CAR_MODES
 } car_mode;
 
@@ -161,6 +162,8 @@ typedef struct _car_data
   car_heading_keep_mode_data hk_data;
   car_png_mode_data png_data;
   car_auto_mode_data am_data;
+
+  float turning_rate; // Used for manual mode, how fast the car turns in degrees per second
 } car_data;
 
 void CAR_init();

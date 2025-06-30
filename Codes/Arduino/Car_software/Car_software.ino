@@ -83,7 +83,13 @@ void setup() {
 
 void loop() {
 
+  static uint32_t _last_loop_time = 0;
+  _last_loop_time = op_data.time_now;
   op_data.time_now = millis();
+
+  // Serial.print("Main - Loop time: \t");
+  // Serial.println(op_data.time_now - _last_loop_time);
+
   sync_pulse_update();
 
   if (ENABLE_IMU)
@@ -326,6 +332,23 @@ void cmd_parse()
       helper_queue_messages(_output_buffer);
     }
   }
+  else if (strcmp("car_turn_rate", cmdParser.getCommand()) == 0)
+  {
+    if (cmdParser.getParamCount() == 1)
+    {
+      float turn_rate;
+      turn_rate = atof(cmdParser.getCmdParam(1));
+      op_data.car.turning_rate = turn_rate;
+      CAR_API_set_mode(CAR_MODE_TURN_RATE);
+    }
+    else
+    {
+      helper_clear_output_buffer();
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 1 arguements, turn rate",
+              cmdParser.getCommand());
+      helper_queue_messages(_output_buffer);
+    }
+  }
   else
   {
     // Command not found
@@ -420,12 +443,12 @@ void telemetry_generate()
   IMU["cal"].add(op_data.imu.mag_calibration_status);
 
   IMU["euler"].add(op_data.imu.euler_heading);
-  IMU["euler"].add(op_data.imu.euler_pitch);
-  IMU["euler"].add(op_data.imu.euler_roll);
+  // IMU["euler"].add(op_data.imu.euler_pitch);
+  // IMU["euler"].add(op_data.imu.euler_roll);
 
   IMU["gyro_z"] = op_data.imu.gyro_z;
 
-  // IMU["lin_accel"].add(op_data.imu.linaccel_x);
+  IMU["lin_accel"].add(op_data.imu.linaccel_x);
   // IMU["lin_accel"].add(op_data.imu.linaccel_y);
   // IMU["lin_accel"].add(op_data.imu.linaccel_z);
 

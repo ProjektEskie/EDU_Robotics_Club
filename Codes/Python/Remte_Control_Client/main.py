@@ -103,9 +103,11 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                             # Convert units from integer to appropriate scale
                             x = float(x) / 10.0  # 0.1 deg to degree
                             y = float(y) / 10.0  # mm to cm
-                            _linaccel = _linaccel_and_gyro &0xFFFF  # Extract the lower 16 bits for linear acceleration
+                            _linaccel = int(_linaccel_and_gyro &0xFFFF)  # Extract the lower 16 bits for linear acceleration
                             gyro = float(_linaccel_and_gyro >> 16)/10.0  # Extract the upper 16 bits for gyro rate
                             linaccel = float(_linaccel) / 100.0  # cm/s^2 to m/s^2
+                            print("Tracker Point %d: x=%f, y=%f, status=%d, linaccel=%f, echo=%d, gyro=%f",
+                                    i, x, y, status, linaccel, echo, gyro)
                             tracker_data.append((x, y, status, linaccel, echo, gyro))
                         except struct.error as e:
                             logger.error("Error unpacking tracker data at index %d: %s", i, e)

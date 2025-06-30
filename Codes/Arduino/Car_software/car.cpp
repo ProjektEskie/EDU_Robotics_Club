@@ -5,7 +5,7 @@
 
 
 bool CAR_turn_to_heading(float target_heading);
-bool CAR_turn_to_heading_pid(float target_heading);
+bool CAR_turn_at_rate(float target_rate);
 bool CAR_turn_to_heading_pulsed(float target_heading);
 void CAR_stop();
 void CAR_commit_speed();
@@ -77,6 +77,15 @@ void CAR_update()
     }
 
     CAR_turn_to_heading(op_data.car.hk_data.target_heading);
+  }
+  else if (op_data.car.mode == CAR_MODE_TURN_RATE)
+  {
+    if (op_data.car.is_new_mode)
+    {
+      op_data.car.is_new_mode = false;
+    }
+
+    CAR_turn_at_rate(op_data.car.turning_rate);
   }
   else if (op_data.car.mode == CAR_MODE_PNG)
   {
@@ -567,42 +576,32 @@ bool CAR_turn_to_heading_pulsed(float target_heading)
 // Uses a Proportional On Measurement PID controller
 // http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
 // Returns true when the car is facing the target heading
-bool CAR_turn_to_heading_pid(float target_heading)
+bool CAR_turn_at_rate(float target_rate)
 {
-  static float _prev_target_heading = 0;
   static double Setpoint, Input, Output;
-  static PID myPID(&Input, &Output, &Setpoint,5,10,2,P_ON_M, DIRECT);
+  static PID myPID(&Input, &Output, &Setpoint, 0.5, 2, 20, P_ON_M, DIRECT);
   bool is_done = false;
 
-  if (target_heading != _prev_target_heading)
-  {
-    // this is a new headingm initialize the PID controller here
-    myPID.SetMode(AUTOMATIC);
-    myPID.SetOutputLimits(-255, 255);
-  }
+  myPID.SetMode(AUTOMATIC);
 
-  Setpoint = target_heading;
-  Input = op_data.imu.euler_heading;
+  Setpoint = target_rate; // Target rate in degrees per second
+  Input = op_data.imu.gyro_z; // Current rate in degrees per second
+
   myPID.Compute();
+  int turn_speed = (int)Output;
 
-  if (abs(Input - Setpoint) < 3)
-  {
-    is_done = true;
-    CAR_stop();
-  }
-  else
-  {
-    op_data.car.left_speed = (int)Output;
-    op_data.car.right_speed = (int)-Output;
-  }
+  op_data.car.left_speed = turn_speed;
+  op_data.car.right_speed = -turn_speed;
 
-  if (is_done)
-  {
-    myPID.SetMode(MANUAL);
-    myPID.SetOutputLimits(-255, 255);
-  }
+  Serial.print("CAR_turn_at_rate, target rate: ");
+  Serial.print(target_rate);
+  Serial.print(", current rate: ");
+  Serial.print(Input);
+  Serial.print(", turn speed: ");
+  Serial.println(turn_speed);
 
-  _prev_target_heading= target_heading;
+
+
   return is_done;
 }
 
