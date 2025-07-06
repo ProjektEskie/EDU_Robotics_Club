@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 480
-VERSION_STR = '2.20'
+VERSION_STR = '2.21'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -71,11 +71,19 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     
                     # We first decode the notification packet
 
-                    # The struct format string corresponds to the telemetry packet structure
-                    # Format: telemetry_avail_flag (1 byte), n_tracker_points (1 byte),
-                    # spare_bytes (10 bytes), sys_time (4 bytes), left_speed (4 bytes),
-                    # right_speed (4 bytes), heading (4 bytes)
-                    struct_format = "<BB10xIiiI"
+                    # The struct format string corresponds to the updated telemetry packet structure
+                    # see ble_telemetry_avail_data in BLE_Comm.hpp
+                    # <BB10xIiii8i4I
+                    # B: telemetry_avail_flag
+                    # B: n_tracker_points
+                    # 10x: spare_bytes[10]
+                    # I: sys_time
+                    # i: left_speed
+                    # i: right_speed
+                    # i: heading (0.1 deg)
+                    # 8i: spare_ints[8]
+                    # 4I: spare_long[4]
+                    struct_format = "<BB10xIiii24x"
 
                     # Unpack the fixed part of the packet
                     try:
@@ -89,25 +97,25 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     
                     # Decode tracker data from the array part of the struct
                     tracker_data = []
-                    tracker_data_format = "<llBB2x"  # Each tracker point consists of two integers, two byte and 2 padding bytes (x, y, r)
+                    # Updated tracker_data_format for new track_point struct
+                    tracker_data_format = "<IiiBB10x"  # heading_and_distance, lin_accel, gyro, echo_range_cm, status_flags, 2 spare, 8 spare
                     tracker_data_size = struct.calcsize(tracker_data_format)
                     fixed_part_size = struct.calcsize(struct_format)  # Size of the fixed part of the struct
 
                     for i in range(n_tracker_points):
                         offset = fixed_part_size + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
                         try:
-                            _xy, _linaccel_and_gyro, echo, status = struct.unpack_from(tracker_data_format, data, offset)
+                            _xy, _linaccel, _gyro, echo, status = struct.unpack_from(tracker_data_format, data, offset)
                             # x position is stored as the upper 16 bits of the first integer, y position is stored as the lower 16 bits of the first integer
                             x = _xy >> 16  # Extract the upper 16 bits for x
                             y = _xy & 0xFFFF  # Extract the lower 16 bits for y
                             # Convert units from integer to appropriate scale
                             x = float(x) / 10.0  # 0.1 deg to degree
                             y = float(y) / 10.0  # mm to cm
-                            _linaccel = int(_linaccel_and_gyro &0xFFFF)  # Extract the lower 16 bits for linear acceleration
-                            gyro = float(_linaccel_and_gyro >> 16)/10.0  # Extract the upper 16 bits for gyro rate
+                            gyro = float(_gyro)/10.0  # Extract the upper 16 bits for gyro rate
                             linaccel = float(_linaccel) / 100.0  # cm/s^2 to m/s^2
-                            print("Tracker Point %d: x=%f, y=%f, status=%d, linaccel=%f, echo=%d, gyro=%f",
-                                    i, x, y, status, linaccel, echo, gyro)
+                            logger.debug("Tracker Point %d: x=%f, y=%f, status=%d, linaccel=%f, echo=%d, gyro=%f",
+                                            i, x, y, status, linaccel, echo, gyro)
                             tracker_data.append((x, y, status, linaccel, echo, gyro))
                         except struct.error as e:
                             logger.error("Error unpacking tracker data at index %d: %s", i, e)
