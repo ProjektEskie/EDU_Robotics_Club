@@ -380,6 +380,7 @@ void callback_func_help()
   helper_queue_messages("car_ping, WIP. Triggers a test function that performs one echo ranging test.");
   helper_queue_messages("ble_set_name, Set the name of the BLE device.");
   helper_queue_messages("car_m_auto, Set the parameters for the automatic mode.");
+  helper_queue_messages("car_turn_rate, Set the turn rate for the car.");
 }
 
 // Look at the time stored in sync, and if it has been long enough, update the pulse

@@ -20,7 +20,7 @@ tracker_xy _current_xy = {0, 0}; // in mm
 // the car travels at speed of 1m/s when the power
 // level is 255, and 0m/s when the power level is 90.
 int _tracker_distance_estimate(int average_car_speed, uint32_t interval_ms);
-bool _should_transmit(int average_car_speed);
+bool _should_transmit(int left_speed, int right_speed);
 
 
 void tracker_init()
@@ -41,11 +41,8 @@ void tracker_update()
 
     if (op_data.sync.pulse_100ms)
     {
-        average_car_speed = (op_data.car.left_speed + op_data.car.right_speed) / 2;
-
-
         // Skip adding any tracking points if the car has not moved
-        if (_should_transmit(average_car_speed))
+        if (_should_transmit(op_data.car.left_speed, op_data.car.right_speed))
         {
 
             cont_transmit_counter = _CONT_TRANSMIT_COUNTER;
@@ -78,11 +75,11 @@ void tracker_update()
         tp.heading_and_distance = (int32_t)((heading << 16) | (distance_mm & 0xFFFF));
         int lin_accel_x = (int)(op_data.imu.linaccel_x * 100);
         // Store the linear acceleration in cm/s/s
-        tp.lin_accel_and_gyro = lin_accel_x;
+        tp.lin_accel = lin_accel_x;
 
         int gyro_z = (int)(op_data.imu.gyro_z * 10.0f);
         // Store the gyro z in 0.1 degrees/s
-        tp.lin_accel_and_gyro |= (gyro_z << 16);
+        tp.gyro = gyro_z;
         
         // Store the echo range in cm
         tp.echo_range_cm = op_data.car.am_data.range_infront;
@@ -155,14 +152,14 @@ tracker_xy tracker_api_get_current_xy()
 }
 
 
-bool _should_transmit(int average_car_speed)
+bool _should_transmit(int left_speed, int right_speed)
 {
+
+    bool is_moving = (left_speed != 0 || right_speed != 0);
     // If the car is not moving, continue to transmit for the following counts and then stop
     // transmitting until the car moves again
-    // This is to avoid flooding the tracker with data when the car is not moving
     // The car is considered to be moving if the average speed is greater than 0
-    if ((average_car_speed != 0) || (op_data.car.mode == CAR_MODE_AUTO))
-    // If the car is in auto mode, always transmit
+    if (is_moving || (op_data.car.mode == CAR_MODE_AUTO))
     {
         return true;
     }
@@ -170,4 +167,5 @@ bool _should_transmit(int average_car_speed)
     {
         return false;
     }
+
 }
