@@ -799,7 +799,7 @@ def create_pid_diagnostic_card():
             ui.markdown('###PID Diagnostic Log')
         pid_diagnostic_log = ui.log(max_lines=100)
         pid_diagnostic_log.classes('w-full')
-        pid_diagnostic_log.style('font-size: 65%; white-space: pre-wrap;')
+        pid_diagnostic_log.style('font-size: 55%; white-space: pre-wrap;')
     return pid_diagnostic_card
 
 log_level = logging.INFO
