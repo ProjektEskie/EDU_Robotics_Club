@@ -579,8 +579,10 @@ bool CAR_turn_to_heading_pulsed(float target_heading)
 bool CAR_turn_at_rate(float target_rate)
 {
   static double Setpoint, Input, Output;
-  static PID myPID(&Input, &Output, &Setpoint, 0.5, 2, 20, P_ON_M, DIRECT);
+  static PID myPID(&Input, &Output, &Setpoint, 0.05, 0.2, 0, P_ON_M, DIRECT);
   bool is_done = false;
+  myPID.SetOutputLimits(-255, 255); // Set output limits to -255 to 255
+  myPID.SetSampleTime(100); // Set sample time to 100 ms
 
   myPID.SetMode(AUTOMATIC);
 
