@@ -588,17 +588,24 @@ bool CAR_turn_at_rate(float target_rate)
   Input = op_data.imu.gyro_z; // Current rate in degrees per second
 
   myPID.Compute();
+
+  // copy diagnostics to car_data
+  op_data.car.diag_input = (int)(Input * 10.0);
+  op_data.car.diag_output = (int)(Output * 10.0);
+  op_data.car.diag_output_sum = (int)(myPID.outputSum * 10.0);
+  op_data.car.diag_err = (int)(Setpoint - Input) * 10.0; // Error in 0.1 degrees/s
+
   int turn_speed = (int)Output;
 
   op_data.car.left_speed = turn_speed;
   op_data.car.right_speed = -turn_speed;
 
-  Serial.print("CAR_turn_at_rate, target rate: ");
-  Serial.print(target_rate);
-  Serial.print(", current rate: ");
-  Serial.print(Input);
-  Serial.print(", turn speed: ");
-  Serial.println(turn_speed);
+  // Serial.print("CAR_turn_at_rate, target rate: ");
+  // Serial.print(target_rate);
+  // Serial.print(", current rate: ");
+  // Serial.print(Input);
+  // Serial.print(", turn speed: ");
+  // Serial.println(turn_speed);
 
 
 

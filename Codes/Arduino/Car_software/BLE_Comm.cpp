@@ -65,6 +65,9 @@ void BLE_Comm_init()
 
   Serial.print("Bluetooth running as:");
   Serial.println(op_data.ble.car_name);
+
+  Serial.print("ble_telemetry_avail_data size: ");
+  Serial.println(sizeof(ble_telemetry_avail_data));
 }
 
 void BLE_Comm_update()
@@ -87,11 +90,12 @@ void BLE_Comm_update()
 
         ble_telemetry_avail_data _telemetry_avail_data;
         memset(&_telemetry_avail_data, 0, sizeof(ble_telemetry_avail_data));
+        // _telemetry_avail_data.seperator = 0xACCE55ED; // This is used to separate the telemetry data from the tracker data
         _telemetry_avail_data.telemetry_avail_flag = _telemetry_avail_flag;
         _telemetry_avail_data.sys_time = op_data.time_now;
         _telemetry_avail_data.left_speed = op_data.car.left_speed;
         _telemetry_avail_data.right_speed = op_data.car.right_speed;
-        _telemetry_avail_data.heading = (int32_t)(op_data.imu.euler_heading * 10.0);
+        _telemetry_avail_data.heading = (int16_t)(op_data.imu.euler_heading * 10.0);
 
         uint8_t _tracker_count = 0;
         for (int i = 0; i < BLE_N_TRACKER_POINTS_PER_TELEMETRY; i++)

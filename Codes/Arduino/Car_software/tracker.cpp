@@ -28,6 +28,8 @@ void tracker_init()
     tracker_set_reference_heading(op_data.imu.euler_heading);
     tracker_set_reference_xy(0, 0);
     tracker_queue.flush();
+    Serial.print("Tracker: track_point size: ");
+    Serial.println(sizeof(track_point));
 }
 
 void tracker_update()
@@ -83,6 +85,12 @@ void tracker_update()
         
         // Store the echo range in cm
         tp.echo_range_cm = op_data.car.am_data.range_infront;
+
+        // Store the PID diagnostic values
+        tp.loop_input = op_data.car.diag_input;
+        tp.loop_output = op_data.car.diag_output;
+        tp.loop_output_sum = op_data.car.diag_output_sum;
+        tp.loop_err = op_data.car.diag_err;
 
         // Calculate the current position in x and y coordinates
         // based on the heading and distance traveled

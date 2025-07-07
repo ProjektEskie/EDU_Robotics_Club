@@ -60,6 +60,8 @@ class PID
 	int GetMode();						  //  inside the PID.
 	int GetDirection();					  //
 
+  double outputSum, lastInput;
+
   private:
 	void Initialize();
 	
@@ -80,7 +82,7 @@ class PID
                                   //   what these values are.  with pointers we'll just know.
 			  
 	unsigned long lastTime;
-	double outputSum, lastInput;
+	
 
 	unsigned long SampleTime;
 	double outMin, outMax;

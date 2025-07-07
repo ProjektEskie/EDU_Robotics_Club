@@ -163,6 +163,10 @@ typedef struct _car_data
   car_png_mode_data png_data;
   car_auto_mode_data am_data;
 
+  // PID diagnostic values, stored as int
+  // divide by 10 to get the actual value
+  int diag_input, diag_output, diag_output_sum, diag_err; 
+
   float turning_rate; // Used for manual mode, how fast the car turns in degrees per second
 } car_data;
 

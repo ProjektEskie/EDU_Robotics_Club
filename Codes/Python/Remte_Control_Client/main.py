@@ -73,17 +73,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
 
                     # The struct format string corresponds to the updated telemetry packet structure
                     # see ble_telemetry_avail_data in BLE_Comm.hpp
-                    # <BB10xIiii8i4I
-                    # B: telemetry_avail_flag
-                    # B: n_tracker_points
-                    # 10x: spare_bytes[10]
-                    # I: sys_time
-                    # i: left_speed
-                    # i: right_speed
-                    # i: heading (0.1 deg)
-                    # 8i: spare_ints[8]
-                    # 4I: spare_long[4]
-                    struct_format = "<BB10xIiii24x"
+                    struct_format = "<BBIhhh16x"
 
                     # Unpack the fixed part of the packet
                     try:
@@ -98,25 +88,30 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     # Decode tracker data from the array part of the struct
                     tracker_data = []
                     # Updated tracker_data_format for new track_point struct
-                    tracker_data_format = "<IiiBB10x"  # heading_and_distance, lin_accel, gyro, echo_range_cm, status_flags, 2 spare, 8 spare
+                    tracker_data_format = "<IhhBB2xhhhh"  # heading_and_distance, lin_accel, gyro, echo_range_cm, status_flags, 2 spare, 8 spare
                     tracker_data_size = struct.calcsize(tracker_data_format)
                     fixed_part_size = struct.calcsize(struct_format)  # Size of the fixed part of the struct
 
                     for i in range(n_tracker_points):
                         offset = fixed_part_size + i * tracker_data_size  # Fixed part is 20 bytes, then tracker points follow
                         try:
-                            _xy, _linaccel, _gyro, echo, status = struct.unpack_from(tracker_data_format, data, offset)
+                            _xy, _linaccel, _gyro, echo, status, _i, _o, _os, _e = struct.unpack_from(tracker_data_format, data, offset)
                             # x position is stored as the upper 16 bits of the first integer, y position is stored as the lower 16 bits of the first integer
                             x = _xy >> 16  # Extract the upper 16 bits for x
                             y = _xy & 0xFFFF  # Extract the lower 16 bits for y
                             # Convert units from integer to appropriate scale
                             x = float(x) / 10.0  # 0.1 deg to degree
                             y = float(y) / 10.0  # mm to cm
-                            gyro = float(_gyro)/10.0  # Extract the upper 16 bits for gyro rate
+                            gyro = float(_gyro)/10.0  # gyro in 0.1 deg/s to deg/s
                             linaccel = float(_linaccel) / 100.0  # cm/s^2 to m/s^2
-                            logger.debug("Tracker Point %d: x=%f, y=%f, status=%d, linaccel=%f, echo=%d, gyro=%f",
-                                            i, x, y, status, linaccel, echo, gyro)
-                            tracker_data.append((x, y, status, linaccel, echo, gyro))
+                            diag_input = _i / 10.0  # PID P value
+                            diag_output = _o / 10.0  # PID I value
+                            diag_output_sum = _os / 10.0  # PID D value
+                            diag_e = _e / 10.0  # PID error value
+                            # logger.info("Tracker Point %d: x=%f, y=%f, status=%d, linaccel=%f, echo=%d, gyro=%f",
+                            #                 i, x, y, status, linaccel, echo, gyro)
+                            tracker_data.append((x, y, status, linaccel, echo, gyro,
+                                                 diag_input, diag_output, diag_output_sum, diag_e))
                         except struct.error as e:
                             logger.error("Error unpacking tracker data at index %d: %s", i, e)
                             continue
@@ -288,6 +283,11 @@ def backend_auto_mode_click():
     
     cmd_str = 'car_m_auto {} {} {}'.format(heading, speed, duration)
     backend_enqueue_message(cmd_str)
+
+def backend_idle_mode_click():
+    # This is a special command to put the car in idle mode, which is not the same as stop
+    # it will stop the motors, but will not reset the heading
+    backend_enqueue_message('car_set_mode 0')
     
 def backend_slew_servo(e):
     angle = servo_angle_slider.value
@@ -420,6 +420,11 @@ def backend_update():
                         range_chart.options['series'][0]['data'].append([sample_number + 1, None])
                     range_chart.options['series'][1]['data'].append(range_point_accel)
                     
+                    # add PID diagnostic values to the log
+                    pid_diagnostic_log_str = 'PID Diagnostic: Sample number: {}, Input: {}, Output: {}, Output Sum: {}, Error: {}'.format(
+                        sample_number, tracking_point[6], tracking_point[7], tracking_point[8], tracking_point[9])
+                    pid_diagnostic_log.push(pid_diagnostic_log_str)
+
                 # only update the chart if there are new data
                 # prevents the chart from resetting the zoom settings
                 if len(telemetry_data['tracker_data']) > 0:
@@ -765,6 +770,37 @@ def create_heading_card():
             car_direction_label = ui.label('Car not in heading mode')
     return heading_card
 
+def create_pid_card():
+    global pid_kp_slider, pid_ki_slider, pid_kd_slider
+    with ui.card() as pid_card:
+        pid_card.tight()
+        pid_card.classes('w-11/12 bg-yellow-200')
+        with ui.card_section():
+            ui.markdown('###PID Control')
+        with ui.grid(columns='1fr 2fr').classes('w-11/12'):
+            ui.label('Kp')
+            pid_kp_slider = ui.slider(min=0, max=10, step=0.1, value=1).props('label-always')
+            ui.label('Ki')
+            pid_ki_slider = ui.slider(min=0, max=10, step=0.1, value=0).props('label-always')
+            ui.label('Kd')
+            pid_kd_slider = ui.slider(min=0, max=10, step=0.1, value=0).props('label-always')
+        with ui.card_section():
+            ui.button('Set PID', on_click=lambda: backend_enqueue_message(
+                'car_set_pid {} {} {}'.format(pid_kp_slider.value, pid_ki_slider.value, pid_kd_slider.value)))
+            
+    return pid_card
+
+def create_pid_diagnostic_card():
+    global pid_diagnostic_log
+    with ui.card() as pid_diagnostic_card:
+        pid_diagnostic_card.tight()
+        pid_diagnostic_card.classes('w-11/12 bg-gray-100')
+        with ui.card_section():
+            ui.markdown('###PID Diagnostic Log')
+        pid_diagnostic_log = ui.log(max_lines=100)
+        pid_diagnostic_log.classes('w-full')
+        pid_diagnostic_log.style('font-size: 75%; white-space: pre-wrap;')
+    return pid_diagnostic_card
 
 log_level = logging.INFO
 logging.basicConfig(
@@ -788,8 +824,11 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
 
     with ui.row().classes('w-full'):
         
-        ui.markdown('#Robot Car Control')
+        ui.icon('directions_car').classes('text-white text-3xl')
+        ui.label('Robot Car Control').classes('text-white text-2xl font-bold')
+
         ui.label(VERSION_STR)
+        ui.button('ESTOP', icon='block', color='red', on_click=backend_idle_mode_click).props('flat')
 
         ui.space()
         
@@ -915,6 +954,7 @@ with ui.grid(columns='2fr 2fr').classes('w-full gap-0'):
 ui.separator()  
 gyro_window = create_gyro_window()
 ui.separator()  
+pid_diag = create_pid_diagnostic_card()
 
 # with ui.grid(columns='2fr 1fr').classes('w-full gap-0'):
 

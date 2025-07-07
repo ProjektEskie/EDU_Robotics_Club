@@ -5,20 +5,23 @@
 #include "personal_config.hpp"
 #include "tracker.hpp"
 
-#define BLE_N_TRACKER_POINTS_PER_TELEMETRY 10
+#define BLE_N_TRACKER_POINTS_PER_TELEMETRY 8
 
 
 typedef struct _ble_telemetry_avail_data
 {
   uint8_t telemetry_avail_flag;
   uint8_t n_tracker_points;
-  uint8_t spare_bytes[10];
+  // uint8_t spare_bytes[2];
   uint32_t sys_time;
-  int left_speed;
-  int right_speed;
-  int32_t heading;  // in 0.1 degrees
+  int16_t left_speed;
+  int16_t right_speed;
+  int16_t heading;  // in 0.1 degrees
+  uint8_t spare_bytes[16];
+  // The tracker data is an array of track_point structures
+  // uint32_t seperator = 0xACCE55ED; // This is used to separate the telemetry data from the tracker data
   track_point tracker_data[BLE_N_TRACKER_POINTS_PER_TELEMETRY];
-} ble_telemetry_avail_data; 
+} __attribute__((packed)) ble_telemetry_avail_data; 
 
 typedef struct _ble_data
 {
