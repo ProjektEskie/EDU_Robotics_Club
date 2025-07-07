@@ -421,7 +421,7 @@ def backend_update():
                     range_chart.options['series'][1]['data'].append(range_point_accel)
                     
                     # add PID diagnostic values to the log
-                    pid_diagnostic_log_str = 'PID Diagnostic: Sample number: {}, Input: {}, Output: {}, Output Sum: {}, Error: {}'.format(
+                    pid_diagnostic_log_str = 'PID Diagnostic: Sample: {:<5} |Input: {:>7.1f} |Output: {:>7.1f} |Output Sum: {:>7.1f} |Error: {:>7.1f}'.format(
                         sample_number, tracking_point[6], tracking_point[7], tracking_point[8], tracking_point[9])
                     pid_diagnostic_log.push(pid_diagnostic_log_str)
 
@@ -799,7 +799,7 @@ def create_pid_diagnostic_card():
             ui.markdown('###PID Diagnostic Log')
         pid_diagnostic_log = ui.log(max_lines=100)
         pid_diagnostic_log.classes('w-full')
-        pid_diagnostic_log.style('font-size: 75%; white-space: pre-wrap;')
+        pid_diagnostic_log.style('font-size: 65%; white-space: pre-wrap;')
     return pid_diagnostic_card
 
 log_level = logging.INFO
