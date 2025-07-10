@@ -482,8 +482,24 @@ void telemetry_generate()
   memset(_json_buffer, 0, JSON_BUFFER_LEN);
 
   doc.shrinkToFit();  // optional
-
-  serializeJson(doc, _json_buffer);
+  size_t n_bytes = measureJson(doc);
+  if (n_bytes >= JSON_BUFFER_LEN)
+  {
+    // Serial.println("Error: JSON buffer is too small for the telemetry data.");
+    helper_queue_messages("Error: JSON buffer is too small for the telemetry data.");
+  }
+  else if (n_bytes == 0)
+  {
+    // Serial.println("Error: JSON serialization failed.");
+    helper_queue_messages("Error: JSON serialization failed.");
+  }
+  else
+  {
+    serializeJson(doc, _json_buffer);
+    Serial.print("Telemetry JSON: ");
+    Serial.println(_json_buffer);
+    helper_queue_formatted_message("TELE:%s", _json_buffer);
+  }  
 
   IMU_reset_n_updates_counter();
 

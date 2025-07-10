@@ -7,7 +7,7 @@
 #include "BLE_Comm.hpp"
 #include "personal_config.hpp"
 
-#define JSON_BUFFER_LEN 480
+#define JSON_BUFFER_LEN 230
 #define BLE_IO_SERVICE_BUFFER_LEN 240
 #define BLE_TELEMETRY_NTOIFY_BUFFER 120
 #define CMD_INPUT_BUFFER_LEN BLE_IO_SERVICE_BUFFER_LEN
