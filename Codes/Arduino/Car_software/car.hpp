@@ -182,4 +182,6 @@ void CAR_API_set_PNG_settings(float target_heading, int line_speed, uint32_t lin
 void CAR_API_set_auto_settings(int forward_speed, float target_heading, uint32_t forward_duration);
 void CAR_API_set_Servo_angle(int angle);
 void CAR_API_start_ranging_scan();
+
+int CAR_output_transfer_function(int input);
 #endif

@@ -581,7 +581,7 @@ bool CAR_turn_at_rate(float target_rate)
   static double Setpoint, Input, Output;
   static PID myPID(&Input, &Output, &Setpoint, 0.05, 0.2, 0, P_ON_M, DIRECT);
   bool is_done = false;
-  myPID.SetOutputLimits(-255, 255); // Set output limits to -255 to 255
+  myPID.SetOutputLimits(-100, 100); // Set output limits to -255 to 255
   myPID.SetSampleTime(100); // Set sample time to 100 ms
 
   myPID.SetMode(AUTOMATIC);
@@ -597,19 +597,11 @@ bool CAR_turn_at_rate(float target_rate)
   op_data.car.diag_output_sum = (int)(myPID.outputSum * 10.0);
   op_data.car.diag_err = (int)(Setpoint - Input) * 10.0; // Error in 0.1 degrees/s
 
-  int turn_speed = (int)Output;
+
+  int turn_speed = CAR_output_transfer_function((int)Output);
 
   op_data.car.left_speed = turn_speed;
   op_data.car.right_speed = -turn_speed;
-
-  // Serial.print("CAR_turn_at_rate, target rate: ");
-  // Serial.print(target_rate);
-  // Serial.print(", current rate: ");
-  // Serial.print(Input);
-  // Serial.print(", turn speed: ");
-  // Serial.println(turn_speed);
-
-
 
   return is_done;
 }
@@ -672,4 +664,15 @@ void CAR_commit_speed()
   }
   analogWrite(LEFT_SPEED_PIN, abs_left_speed);
   analogWrite(RIGHT_SPEED_PIN, abs_right_speed);
+}
+
+
+int CAR_output_transfer_function(int input)
+{
+  int min_power = 60;
+  if (input < 0) {
+    return map(input, -100, 0, -255, -min_power);
+  } else {
+    return map(input, 0, 100, min_power, 255);
+  }
 }
