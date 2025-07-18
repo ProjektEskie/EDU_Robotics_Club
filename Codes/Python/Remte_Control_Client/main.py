@@ -23,8 +23,8 @@ tq = queue.SimpleQueue()
 dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
-TELEMETRY_LENGTH = 480
-VERSION_STR = '2.21'
+TELEMETRY_LENGTH = 230
+VERSION_STR = '2.22'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -134,20 +134,7 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                     
                     data_queue.put(['TELE_AND_TRACK', telemetry_data])
                     
-                    # Then we perform a read for the extended telemetry packet, the car
-                    # will pause transmission of the messaging packet for 2 cycles (~100ms)
-                    # to give airtime for this extended packet to be read.
-                    value = await client.read_gatt_char("7b0db1df-67ed-46ef-b091-b4472119ef6d")
-                    value = value.split(b'\0')[0].decode()
-                    glob_model['telemetry_str_len'] = len(value)
-                    # logger.info("%s: %r", "Expaned Telemetry", value)
-                    try:
-                        json_data = json.loads(value)
-                    except JSONDecodeError:
-                        logger.warning("%s: %r", "JSON Decode error", value)
-                        return
-                    telemetry_Queue.put(json_data)
-                    glob_model['last_telemetry_time'] = time.monotonic()
+
                     
                 elif (characteristic.uuid == "8cf10e3b-0e9c-4809-b94a-5217ed9d6902".lower()):
                     # logger.info("%s: %r", "Message from car: ", data)
@@ -162,8 +149,18 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                         data_str = data_str.split(',')
                         data_arr = np.array(data_str, dtype=np.float32)
                         data_queue.put(['RANGE', data_arr])
-                    else:
-                        output_queue.put(message)
+                    elif (message.startswith("TELE:")):
+                        # This is a telemetry message, we will parse it as JSON
+                        value = message[5:]  # Skip the "TELE:" prefix
+                        glob_model['telemetry_str_len'] = len(value)
+                        # logger.info("%s: %r", "Expaned Telemetry", value)
+                        try:
+                            json_data = json.loads(value)
+                        except JSONDecodeError:
+                            logger.warning("%s: %r", "JSON Decode error", value)
+                            return
+                        telemetry_Queue.put(json_data)
+                        glob_model['last_telemetry_time'] = time.monotonic()
 
             glob_BLE_connected = 2
 
