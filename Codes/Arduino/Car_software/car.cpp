@@ -1,11 +1,11 @@
 #include "car.hpp"
 #include "definitions.hpp"
 #include "helpers.hpp"
-#include "PID_v1.h"
+
 
 
 bool CAR_turn_to_heading(float target_heading);
-bool CAR_turn_at_rate(float target_rate);
+bool CAR_turn_at_rate(float target_rate, bool reinitialize_pid);
 bool CAR_turn_to_heading_pulsed(float target_heading);
 void CAR_stop();
 void CAR_commit_speed();
@@ -80,12 +80,14 @@ void CAR_update()
   }
   else if (op_data.car.mode == CAR_MODE_TURN_RATE)
   {
+    bool is_reinitialize = false;
     if (op_data.car.is_new_mode)
     {
       op_data.car.is_new_mode = false;
+      is_reinitialize = true;
     }
 
-    CAR_turn_at_rate(op_data.car.turning_rate);
+    CAR_turn_at_rate(op_data.car.turning_rate, is_reinitialize);
   }
   else if (op_data.car.mode == CAR_MODE_PNG)
   {
@@ -576,15 +578,19 @@ bool CAR_turn_to_heading_pulsed(float target_heading)
 // Uses a Proportional On Measurement PID controller
 // http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
 // Returns true when the car is facing the target heading
-bool CAR_turn_at_rate(float target_rate)
+bool CAR_turn_at_rate(float target_rate, bool reinitialize_pid = false)
 {
   static double Setpoint, Input, Output;
   static PID myPID(&Input, &Output, &Setpoint, 0.05, 0.2, 0, P_ON_M, DIRECT);
   bool is_done = false;
-  myPID.SetOutputLimits(-100, 100); // Set output limits to -255 to 255
-  myPID.SetSampleTime(100); // Set sample time to 100 ms
-
-  myPID.SetMode(AUTOMATIC);
+  
+  if (reinitialize_pid)
+  {
+    myPID.SetOutputLimits(-100, 100); // Set output limits to -255 to 255
+    myPID.SetSampleTime(100); // Set sample time to 100 ms
+    myPID.outputSum = 0; // Reset the output sum
+    myPID.SetMode(AUTOMATIC);
+  }
 
   Setpoint = target_rate; // Target rate in degrees per second
   Input = op_data.imu.gyro_z; // Current rate in degrees per second

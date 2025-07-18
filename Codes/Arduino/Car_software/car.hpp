@@ -3,6 +3,7 @@
 
 #include <arduino.h>
 #include <Servo.h>
+#include "PID_v1.h"
 #include "personal_config.hpp"
 
 #define PIN_BATTERY_SENSE A0
