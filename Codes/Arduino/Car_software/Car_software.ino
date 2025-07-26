@@ -99,7 +99,7 @@ void loop() {
 
   CAR_update();
 
-  if ((op_data.time_now - op_data.last_telemetry_time) > TELEMETRY_UPDATE_INTERNVAL)
+  if (op_data.sync.pulse_500ms)
   {
     telemetry_generate();
   }
@@ -456,28 +456,6 @@ void telemetry_generate()
   JsonObject CAR = doc["CAR"].to<JsonObject>();
   CAR["servo_angle"] = op_data.car.servo_angle;
   CAR["mode"] = op_data.car.mode;
-  
-  // if (op_data.car.mode == CAR_MODE_MANUAL)
-  // {
-  //   // CAR["manual_mode"]["left_speed"] = op_data.car.mm_data.mm_left_speed;
-  //   // CAR["manual_mode"]["right_speed"] = op_data.car.mm_data.mm_right_speed;
-  //   CAR["manual_mode"]["duration"] = op_data.car.mm_data.mm_duration;
-  // }
-  // else if (op_data.car.mode == CAR_MODE_HEADING_KEEP)
-  // {
-  //   CAR["tgt_heading"] = op_data.car.hk_data.target_heading;
-  // }
-  // else if (op_data.car.mode == CAR_MODE_AUTO)
-  // {
-  //   // CAR["auto_mode"]["step"] = op_data.car.am_data.step;
-  //   // CAR["auto_mode"]["range_infront"] = op_data.car.am_data.range_infront;
-  //   CAR["auto_mode"]["tgt_heading"] = op_data.car.am_data.target_heading_absuolute;
-  // }
-  
-  
-  // JsonObject CAR_speeds = CAR["speeds"].to<JsonObject>();
-  // CAR_speeds["left"] = op_data.car.left_speed;
-  // CAR_speeds["right"] = op_data.car.right_speed;
 
   memset(_json_buffer, 0, JSON_BUFFER_LEN);
 
