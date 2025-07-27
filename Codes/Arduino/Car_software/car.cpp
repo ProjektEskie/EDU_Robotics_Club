@@ -37,6 +37,20 @@ void CAR_init()
 
   op_data.car.front_servo.attach(SERVO_PIN);
   op_data.car.front_servo.write( -1 * op_data.car.servo_angle + op_data.car.servo_angle_offset + 90);
+
+
+  // initialize the PID controller for heading keep mode
+  op_data.car.hk_data.kp = 0.5;
+  op_data.car.hk_data.ki = 0.2;
+  op_data.car.hk_data.kd = 0.0;
+  op_data.car.hk_data.pid = new PID(&op_data.car.hk_data.input, &op_data.car.hk_data.output, &op_data.car.hk_data.setpoint,
+                                     op_data.car.hk_data.kp, op_data.car.hk_data.ki, op_data.car.hk_data.kd, DIRECT);
+  op_data.car.hk_data.pid->SetMode(AUTOMATIC);
+  op_data.car.hk_data.pid->SetOutputLimits(-100, 100);
+  op_data.car.hk_data.pid->SetSampleTime(100); 
+  op_data.car.hk_data.reinitialize_pid = true;
+
+
 }
 
 void CAR_update()
@@ -95,33 +109,8 @@ void CAR_update()
     {
       op_data.car.png_data.step = CAR_PNG_GOTO_HEADING;
       op_data.car.is_new_mode = false;
-    }
-
-    if (op_data.car.png_data.step == CAR_PNG_GOTO_HEADING)
-    {
-      if (CAR_turn_to_heading(op_data.car.png_data.target_heading))
-      {
-        op_data.car.png_data.step = CAR_PNG_LINEAR_TRAVEL;
-        op_data.car.png_data.straight_line_start_time = op_data.time_now;
-        op_data.car.left_speed = op_data.car.png_data.straight_line_speed;
-        op_data.car.right_speed = op_data.car.png_data.straight_line_speed;
-      }
-    }
-    else if (op_data.car.png_data.step == CAR_PNG_LINEAR_TRAVEL)
-    {
-      if ((op_data.time_now - op_data.car.png_data.straight_line_start_time) > op_data.car.png_data.straight_line_duration)
-      {
-        op_data.car.png_data.step = CAR_PNG_DONE;
-      }
-    }
-    else if (op_data.car.png_data.step == CAR_PNG_DONE)
-    {
-      CAR_stop();
-    }
-    else
-    {
       CAR_API_set_mode(CAR_MODE_IDLE);
-      helper_queue_messages("CAR, ERROR: unexpected step in PNG mode");
+      helper_queue_messages("CAR, ERROR: PNG mode not implemented.");
     }
 
   }
@@ -457,6 +446,17 @@ void CAR_API_set_heading(float requested_heading)
   }
 }
 
+void CAR_API_set_heading_keep_pid_settings(float kp, float ki, float kd)
+{
+  op_data.car.hk_data.kp = kp;
+  op_data.car.hk_data.ki = ki;
+  op_data.car.hk_data.kd = kd;
+
+  // Reinitialize the PID controller with the new settings
+  op_data.car.hk_data.pid->SetTunings(op_data.car.hk_data.kp, op_data.car.hk_data.ki, op_data.car.hk_data.kd);
+  op_data.car.hk_data.pid->SetMode(AUTOMATIC);
+}
+
 void CAR_API_set_PNG_settings(float target_heading, int line_speed, uint32_t line_duration)
 {
   op_data.car.png_data.target_heading = target_heading;
@@ -495,29 +495,28 @@ bool CAR_turn_to_heading(float target_heading)
   bool is_done = false;
   float _dff = helper_angle_diff(op_data.imu.euler_heading, target_heading);
 
-  int turn_speed = 220;
-  int abs_diff;
-  abs_diff = (int)abs(_dff);
-
-  turn_speed = map(abs_diff, 0, 180, 150, 255);
-
-  int angle_tolerance = 3;
-
-  if (_dff > angle_tolerance)
+  if (op_data.car.hk_data.reinitialize_pid)
   {
-    op_data.car.left_speed = -turn_speed;
-    op_data.car.right_speed = turn_speed;
+    op_data.car.hk_data.pid->SetTunings(op_data.car.hk_data.kp, op_data.car.hk_data.ki, op_data.car.hk_data.kd);
+    op_data.car.hk_data.reinitialize_pid = false;
+    op_data.car.hk_data.pid->SetMode(AUTOMATIC);
+    op_data.car.hk_data.setpoint = 0.0; // Reset the setpoint to 0
   }
-  else if (_dff < -angle_tolerance)
-  {
-    op_data.car.left_speed = turn_speed;
-    op_data.car.right_speed = -turn_speed;
-  }
-  else
-    {
-      CAR_stop();
-      is_done = true;
-    }
+
+  op_data.car.hk_data.input = _dff; // Current heading difference
+  op_data.car.hk_data.setpoint = 0.0; // Target heading difference is 0
+  op_data.car.hk_data.pid->Compute();
+  // copy diagnostics to car_data
+  op_data.car.diag_input = (int)(op_data.car.hk_data.input * 10.0); // Input in 0.1 degrees
+  op_data.car.diag_output = (int)(op_data.car.hk_data.output * 10.0); // Output in 0.1 degrees
+  op_data.car.diag_output_sum = (int)(op_data.car.hk_data.pid->outputSum * 10.0); // Output sum in 0.1 degrees
+  op_data.car.diag_err = (int)(op_data.car.hk_data.setpoint - op_data.car.hk_data.input) * 10.0; // Error in 0.1 degrees
+  int turn_speed = CAR_output_transfer_function((int)op_data.car.hk_data.output);
+  op_data.car.left_speed = turn_speed;
+  op_data.car.right_speed = -turn_speed;
+
+
+
   return is_done;
 }
 
