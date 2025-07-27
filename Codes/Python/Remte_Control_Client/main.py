@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 230
-VERSION_STR = '2.22'
+VERSION_STR = '2.23'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -961,7 +961,7 @@ glob_model['is_ui_init'] = True
 
 
 
-ui.run(native=True, window_size=(1100, 900), fullscreen=False, reload=False, port=native.find_open_port())
+ui.run(native=True, window_size=(1200, 900), fullscreen=False, reload=False, port=native.find_open_port())
 
 # To build as exe, run the following in command line (need pyinstaller)
 #  cd .\Codes\Python\Remte_Control_Client\
