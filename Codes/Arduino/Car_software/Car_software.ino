@@ -369,6 +369,7 @@ void callback_func_help()
   helper_queue_messages("car_m_move, move the car by manualcommand.");
   helper_queue_messages("car_set_mode, select which automatic mode of the car to use.");
   helper_queue_messages("car_set_heading, Set the heading for heading_keeping mode.");
+  helper_queue_messages("car_set_hk_pid, Set the PID parameters for heading keeping mode.");
   helper_queue_messages("car_set_servo, Set the angle of the servo.");
   helper_queue_messages("car_do_ranging, Perform a ranging scan across the front arc of the car.");
   helper_queue_messages("car_ping, WIP. Triggers a test function that performs one echo ranging test.");
