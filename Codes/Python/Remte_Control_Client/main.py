@@ -24,7 +24,7 @@ dq = queue.SimpleQueue()
 
 DEFAULT_CAR_NAME = 'RClub_Car'
 TELEMETRY_LENGTH = 230
-VERSION_STR = '2.22'
+VERSION_STR = '2.23'
 
 glob_model = {}
 glob_model['is_init'] = False
@@ -161,6 +161,11 @@ async def ble_task(input_queue, output_queue, telemetry_Queue, data_queue):
                             return
                         telemetry_Queue.put(json_data)
                         glob_model['last_telemetry_time'] = time.monotonic()
+                        
+                    else:
+                        # This is a command message, we will just log it
+                        # logger.info("%s: %r", "Command from car: ", message)
+                        output_queue.put(message)
 
             glob_BLE_connected = 2
 
@@ -796,7 +801,7 @@ def create_pid_diagnostic_card():
             ui.markdown('###PID Diagnostic Log')
         pid_diagnostic_log = ui.log(max_lines=100)
         pid_diagnostic_log.classes('w-full')
-        pid_diagnostic_log.style('font-size: 55%; white-space: pre-wrap;')
+        pid_diagnostic_log.style('font-size: 75%; white-space: pre-wrap;')
     return pid_diagnostic_card
 
 log_level = logging.INFO
@@ -893,7 +898,7 @@ with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
             
             telemetry_table = ui.table(columns=telemetry_table_columns, rows=telemetry_table_rows, row_key='field')
             telemetry_table.classes('w-full')
-            telemetry_table.style('font-size: 75%;')
+            telemetry_table.style('font-size: 55%;')
                    
             ui.separator()
             ui.button('Clear plot / Re-Orient', on_click=backend_clear_tracker_click)
