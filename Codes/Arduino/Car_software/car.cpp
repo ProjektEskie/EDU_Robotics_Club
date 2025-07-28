@@ -581,7 +581,7 @@ bool CAR_turn_to_heading_pulsed(float target_heading)
 bool CAR_turn_at_rate(float target_rate, bool reinitialize_pid = false)
 {
   static double Setpoint, Input, Output;
-  static PID myPID(&Input, &Output, &Setpoint, 0.05, 0.2, 0, P_ON_M, DIRECT);
+  static PID myPID(&Input, &Output, &Setpoint, 0.1, 0.4, 0, P_ON_M, DIRECT);
   bool is_done = false;
   
   if (reinitialize_pid)
