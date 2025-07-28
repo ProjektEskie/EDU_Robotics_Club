@@ -23,6 +23,8 @@
 #undef ARDUINOJSON_USE_LONG_LONG
 #define ARDUINOJSON_USE_LONG_LONG 0
 
+#define MIN_PC_APP_VERSION "2.23"
+
 
 operation_data op_data;
 
@@ -99,7 +101,7 @@ void loop() {
 
   CAR_update();
 
-  if ((op_data.time_now - op_data.last_telemetry_time) > TELEMETRY_UPDATE_INTERNVAL)
+  if (op_data.sync.pulse_500ms)
   {
     telemetry_generate();
   }
@@ -206,36 +208,29 @@ void cmd_parse()
       helper_queue_messages("Info: car_set_heading 90");
     }
   }
-  else if (strcmp("car_set_png_param", cmdParser.getCommand()) == 0)
+  else if (strcmp("car_set_hk_pid", cmdParser.getCommand()) == 0)
   {
     if (cmdParser.getParamCount() == 3)
     {
-
-      float target_heading;
-      int speed;
-      uint32_t duration;
-
+      float kp = atof(cmdParser.getCmdParam(1));
+      float ki = atof(cmdParser.getCmdParam(2));
+      float kd = atof(cmdParser.getCmdParam(3));
+      CAR_API_set_heading_keep_pid_settings(kp, ki, kd);
       helper_clear_output_buffer();
-      sprintf(_output_buffer, "car_set_png_param, you've entered parameters of '%s' '%s' '%s'",
-              cmdParser.getCmdParam(1),
-              cmdParser.getCmdParam(2),
-              cmdParser.getCmdParam(3));
+      sprintf(_output_buffer, "Success, '%s'. PID settings set to: kp: %f, ki: %f, kd: %f",
+              cmdParser.getCommand(), kp, ki, kd);
       helper_queue_messages(_output_buffer);
-
-      target_heading = atof(cmdParser.getCmdParam(1));
-      speed = atoi(cmdParser.getCmdParam(2));
-      duration = atol(cmdParser.getCmdParam(3));
-
-      CAR_API_set_PNG_settings( target_heading, speed, duration);
     }
     else
     {
       helper_clear_output_buffer();
-      sprintf(_output_buffer, "Error, '%s' command accepts exactly 3 arguements, heading, straight line speed and duration",
+      sprintf(_output_buffer, "Error, '%s' command accepts exactly 3 arguements",
               cmdParser.getCommand());
       helper_queue_messages(_output_buffer);
+      helper_queue_messages("Info: car_set_heading_keep_pid (car, set heading keep PID) example usage:");
+      helper_queue_messages("Info: car_set_heading_keep_pid [kp] [ki] [kd]");
+      helper_queue_messages("Info: car_set_heading_keep_pid 0.5 0.0 0.0");
     }
-
   }
   else if (strcmp("help", cmdParser.getCommand()) == 0)
   {
@@ -374,7 +369,7 @@ void callback_func_help()
   helper_queue_messages("car_m_move, move the car by manualcommand.");
   helper_queue_messages("car_set_mode, select which automatic mode of the car to use.");
   helper_queue_messages("car_set_heading, Set the heading for heading_keeping mode.");
-  helper_queue_messages("car_set_png_param, Set the parameters for the point-and-go mode.");
+  helper_queue_messages("car_set_hk_pid, Set the PID parameters for heading keeping mode.");
   helper_queue_messages("car_set_servo, Set the angle of the servo.");
   helper_queue_messages("car_do_ranging, Perform a ranging scan across the front arc of the car.");
   helper_queue_messages("car_ping, WIP. Triggers a test function that performs one echo ranging test.");
@@ -435,6 +430,7 @@ void telemetry_generate()
   doc["t_last"] = op_data.time_since_last_telemetry;
   doc["n_cycles"] = op_data.n_cycles_since_last_telemetry;
   doc["ble_rssi"] = op_data.ble.rssi;
+  doc["min_pc_app_version"] = MIN_PC_APP_VERSION;
   // doc["n_out"] = _output_queue.getCount();
 
   JsonObject IMU = doc["IMU"].to<JsonObject>();
@@ -456,28 +452,6 @@ void telemetry_generate()
   JsonObject CAR = doc["CAR"].to<JsonObject>();
   CAR["servo_angle"] = op_data.car.servo_angle;
   CAR["mode"] = op_data.car.mode;
-  
-  // if (op_data.car.mode == CAR_MODE_MANUAL)
-  // {
-  //   // CAR["manual_mode"]["left_speed"] = op_data.car.mm_data.mm_left_speed;
-  //   // CAR["manual_mode"]["right_speed"] = op_data.car.mm_data.mm_right_speed;
-  //   CAR["manual_mode"]["duration"] = op_data.car.mm_data.mm_duration;
-  // }
-  // else if (op_data.car.mode == CAR_MODE_HEADING_KEEP)
-  // {
-  //   CAR["tgt_heading"] = op_data.car.hk_data.target_heading;
-  // }
-  // else if (op_data.car.mode == CAR_MODE_AUTO)
-  // {
-  //   // CAR["auto_mode"]["step"] = op_data.car.am_data.step;
-  //   // CAR["auto_mode"]["range_infront"] = op_data.car.am_data.range_infront;
-  //   CAR["auto_mode"]["tgt_heading"] = op_data.car.am_data.target_heading_absuolute;
-  // }
-  
-  
-  // JsonObject CAR_speeds = CAR["speeds"].to<JsonObject>();
-  // CAR_speeds["left"] = op_data.car.left_speed;
-  // CAR_speeds["right"] = op_data.car.right_speed;
 
   memset(_json_buffer, 0, JSON_BUFFER_LEN);
 

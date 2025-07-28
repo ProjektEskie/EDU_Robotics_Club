@@ -859,7 +859,7 @@ with ui.header(elevated=True).style('background-color: #3874c8').classes('items-
 
 with ui.right_drawer(top_corner=True, bottom_corner=True) as right_hand_drawer:
     right_hand_drawer.style('background-color: #d7e3f4')
-    right_hand_drawer.props('width=350')
+    right_hand_drawer.props('width=550')
     ui.markdown('##Robot Status')
     
     with ui.tabs().classes('w-full') as tabs:
@@ -966,7 +966,7 @@ glob_model['is_ui_init'] = True
 
 
 
-ui.run(native=True, window_size=(1100, 900), fullscreen=False, reload=False, port=native.find_open_port())
+ui.run(native=True, window_size=(1200, 900), fullscreen=False, reload=False, port=native.find_open_port())
 
 # To build as exe, run the following in command line (need pyinstaller)
 #  cd .\Codes\Python\Remte_Control_Client\

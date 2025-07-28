@@ -64,6 +64,15 @@ typedef struct _car_heading_keep_mode_data
 {
   float target_heading;
   float _heading_difference;
+  double setpoint;
+  double input;
+  double output;
+  float kp;
+  float ki;
+  float kd;
+  PID *pid;
+  bool reinitialize_pid;
+
 } car_heading_keep_mode_data;
 
 typedef enum _car_png_mode_steps
@@ -179,6 +188,7 @@ int CAR_echo_range_cm(); // Returns the distance infront of the ranging sensor i
 void CAR_API_car_m_move(int left_speed, int right_speed, uint32_t duration);
 void CAR_API_set_mode(uint8_t requested_mode);
 void CAR_API_set_heading(float requested_heading);
+void CAR_API_set_heading_keep_pid_settings(float kp, float ki, float kd);
 void CAR_API_set_PNG_settings(float target_heading, int line_speed, uint32_t line_duration);
 void CAR_API_set_auto_settings(int forward_speed, float target_heading, uint32_t forward_duration);
 void CAR_API_set_Servo_angle(int angle);

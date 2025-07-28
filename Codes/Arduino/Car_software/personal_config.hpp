@@ -4,5 +4,6 @@
 #define BLE_DEFAULT_CAR_NAME "RClub_Car"
 #define IS_EGLOO_PLATFORM 0 // Freenove if 0
 #define ENABLE_IMU 1
+#define ENABLE_PID_TURN 1
 
 #endif // PERSONAL_CONFIG_HPP
