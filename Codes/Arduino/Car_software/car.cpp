@@ -90,7 +90,12 @@ void CAR_update()
       op_data.car.is_new_mode = false;
     }
 
-    CAR_turn_to_heading(op_data.car.hk_data.target_heading);
+    if (CAR_turn_to_heading(op_data.car.hk_data.target_heading))
+    {
+      CAR_stop();
+      op_data.car.mode = CAR_MODE_IDLE;
+      helper_queue_messages("Heading keep mode: target heading reached, returning to idle mode");
+    }
   }
   else if (op_data.car.mode == CAR_MODE_TURN_RATE)
   {
@@ -501,6 +506,8 @@ bool CAR_turn_to_heading(float target_heading)
     op_data.car.hk_data.reinitialize_pid = false;
     op_data.car.hk_data.pid->SetMode(AUTOMATIC);
     op_data.car.hk_data.setpoint = 0.0; // Reset the setpoint to 0
+    op_data.car.hk_data.pid->SetOutputLimits(-100, 100); // Set output limits to -100 to 100
+    op_data.car.hk_data.pid->SetSampleTime(100); // Set sample time to
   }
 
   op_data.car.hk_data.input = _dff; // Current heading difference
@@ -515,7 +522,22 @@ bool CAR_turn_to_heading(float target_heading)
   op_data.car.left_speed = turn_speed;
   op_data.car.right_speed = -turn_speed;
 
+  static int last_inputs[30] = {0};
+  static int input_index = 0;
 
+  // Store the current input
+  last_inputs[input_index] = (int)abs((op_data.car.hk_data.input * 10.0));
+  input_index = (input_index + 1) % 30;
+
+  // Check if all last 30 inputs are zero (absolute value)
+  int sum = 0;
+  for (int i = 0; i < 30; ++i) {
+    sum += last_inputs[i];
+  }
+
+  if (sum == 0) {
+    is_done = true;
+  }
 
   return is_done;
 }
