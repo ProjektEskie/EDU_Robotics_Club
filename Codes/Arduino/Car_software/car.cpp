@@ -1,7 +1,7 @@
 #include "car.hpp"
 #include "definitions.hpp"
 #include "helpers.hpp"
-
+#include <pwm.h>
 
 
 bool CAR_turn_to_heading(float target_heading);
@@ -12,6 +12,9 @@ void CAR_commit_speed();
 void CAR_auto_mode();
 
 extern operation_data op_data;
+
+PwmOut pwm5(5);
+PwmOut pwm6(6);
 
 void CAR_init()
 {
@@ -30,6 +33,12 @@ void CAR_init()
   pinMode(LEFT_DIRECTION_PIN_IN2, OUTPUT);
   pinMode(RIGHT_DIRECTION_PIN_IN4, OUTPUT);
   #endif
+
+  // Intitalize the speed outputs
+  float freq = 20000.0;
+  float duty_cycle = 0.0;
+  pwm5.begin(freq, duty_cycle);
+  pwm6.begin(freq, duty_cycle);
 
   op_data.car.mode = CAR_MODE_IDLE;
   op_data.car.servo_angle = 0;
