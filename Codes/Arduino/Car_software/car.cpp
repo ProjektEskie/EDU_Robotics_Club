@@ -13,8 +13,8 @@ void CAR_auto_mode();
 
 extern operation_data op_data;
 
-PwmOut pwm5(5);
-PwmOut pwm6(6);
+PwmOut pwm_left(LEFT_SPEED_PIN);
+PwmOut pwm_right(RIGHT_SPEED_PIN);
 
 void CAR_init()
 {
@@ -37,8 +37,8 @@ void CAR_init()
   // Intitalize the speed outputs
   float freq = 20000.0;
   float duty_cycle = 0.0;
-  pwm5.begin(freq, duty_cycle);
-  pwm6.begin(freq, duty_cycle);
+  pwm_left.begin(freq, duty_cycle);
+  pwm_right.begin(freq, duty_cycle);
 
   op_data.car.mode = CAR_MODE_IDLE;
   op_data.car.servo_angle = 0;
