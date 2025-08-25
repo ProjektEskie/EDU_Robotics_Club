@@ -35,7 +35,7 @@ void CAR_init()
   #endif
 
   // Intitalize the speed outputs
-  float freq = 20000.0;
+  float freq = 5000.0;
   float duty_cycle = 0.0;
   pwm_left.begin(freq, duty_cycle);
   pwm_right.begin(freq, duty_cycle);
@@ -698,8 +698,20 @@ void CAR_commit_speed()
       digitalWrite(RIGHT_DIRECTION_PIN, HIGH);
     #endif
   }
-  analogWrite(LEFT_SPEED_PIN, abs_left_speed);
-  analogWrite(RIGHT_SPEED_PIN, abs_right_speed);
+  // analogWrite(LEFT_SPEED_PIN, abs_left_speed);
+  // analogWrite(RIGHT_SPEED_PIN, abs_right_speed);
+
+
+  float left_duty_cycle = (float)constrain(abs_left_speed, 0, 255) / 255.0 * 100.0;
+  float right_duty_cycle = (float)constrain(abs_right_speed, 0, 255) / 255.0 * 100.0;
+
+  pwm_left.pulse_perc(left_duty_cycle);
+  pwm_right.pulse_perc(right_duty_cycle);
+
+  // Serial.print("L:");
+  // Serial.print(left_duty_cycle);
+  // Serial.print(" R:");
+  // Serial.println(right_duty_cycle);
 }
 
 
