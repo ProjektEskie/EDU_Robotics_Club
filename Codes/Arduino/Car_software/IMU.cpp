@@ -1,5 +1,6 @@
 #include "IMU.hpp"
 #include "definitions.hpp"
+#include "personal_config.hpp"
 
 extern operation_data op_data;
 
